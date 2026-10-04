@@ -66,6 +66,7 @@ RULES = [
 ]
 
 SPENDING_LIMIT_CENTS = 350_000
+PAY_DAYS = [1, 16]
 CATEGORY_TARGETS_CENTS = {"Groceries": 60_000, "Dining": 15_000, "Transportation": 30_000}
 
 
@@ -93,9 +94,9 @@ def mock_rows(today: date) -> tuple[list[tuple], list[tuple]]:
     while month <= today:
         on = lambda day_of_month: month.replace(day=day_of_month)
         some_days = lambda count: sorted(rng.sample(range(1, 29), count))
-        # Twice-monthly pay, on the 1st and the 16th.
-        chequing.append((pay_day(on(1)), "PAYROLL DEPOSIT ACME CORP", "2450.00"))
-        chequing.append((pay_day(on(16)), "PAYROLL DEPOSIT ACME CORP", "2450.00"))
+        # Twice-monthly pay.
+        for day in PAY_DAYS:
+            chequing.append((pay_day(on(day)), "PAYROLL DEPOSIT ACME CORP", "2450.00"))
         chequing.append((on(1), "PREAUTHORIZED DEBIT MAPLE PROPERTY MGMT", "-1650.00"))
         chequing.append((on(12), "HYDRO ONE BILL PAYMENT", "-" + dollars(70, 120)))
         chequing.append((on(20), "ROGERS WIRELESS", "-85.00"))
@@ -156,6 +157,7 @@ def main() -> None:
 
         user = create_user(session, "Demo")
         user.spending_limit_cents = SPENDING_LIMIT_CENTS
+        user.pay_days = PAY_DAYS
         categories = {
             category.name: category
             for category in session.query(Category).filter_by(user_id=user.id)

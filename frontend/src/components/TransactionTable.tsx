@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatCents, formatDate } from '@/lib/format'
+import { formatMonth } from '@/lib/months'
 import { IMPORTANCE_LABELS, KIND_LABELS } from '@/lib/labels'
 import { cn } from '@/lib/utils'
 
@@ -86,6 +87,11 @@ export function TransactionTable({ transactions, openFirst, onSaved }: Props) {
               >
                 <TableCell className="whitespace-nowrap text-muted-foreground">
                   {formatDate(transaction.posted_on)}
+                  {transaction.counts_in_month && (
+                    <div className="text-xs">
+                      Counts in {formatMonth(transaction.counts_in_month)}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   {transaction.merchant_name ? (

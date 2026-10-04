@@ -91,7 +91,9 @@ def monthly_report(
     return MonthlyReport(
         months=[
             MonthOut.from_figures(figures)
-            for figures in monthly_figures(session, user.id, first, last)
+            for figures in monthly_figures(
+                session, user.id, first, last, user.pay_days or []
+            )
         ],
         spending_limit_cents=user.spending_limit_cents,
     )

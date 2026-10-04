@@ -42,6 +42,48 @@ function CategoryNameInput({
   )
 }
 
+/** "1, 16" -> [1, 16]. Returns null when something is not a day from 1 to 31. */
+function parsePayDays(text: string): number[] | null {
+  const days = text
+    .split(/[\s,]+/)
+    .filter((part) => part !== '')
+    .map(Number)
+  return days.every((day) => Number.isInteger(day) && day >= 1 && day <= 31) ? days : null
+}
+
+function PayDaysInput({
+  payDays,
+  onCommit,
+}: {
+  payDays: number[]
+  onCommit: (payDays: number[]) => void
+}) {
+  const saved = payDays.join(', ')
+  // null while the field shows the saved value; text while the User is editing.
+  const [draft, setDraft] = useState<string | null>(null)
+  const parsed = draft === null ? payDays : parsePayDays(draft)
+  const commit = () => {
+    if (draft === null || parsed === null) return
+    if (parsed.join(', ') !== saved) onCommit(parsed)
+    setDraft(null)
+  }
+  return (
+    <Input
+      id="pay-days"
+      className="w-40"
+      placeholder="None"
+      inputMode="numeric"
+      aria-invalid={parsed === null}
+      value={draft ?? saved}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') commit()
+      }}
+    />
+  )
+}
+
 function SettingsPage() {
   const queryClient = useQueryClient()
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.getSettings })
@@ -52,6 +94,10 @@ function SettingsPage() {
 
   const changeLimit = useMutation({
     mutationFn: (cents: number | null) => api.changeSettings({ spending_limit_cents: cents }),
+    onSuccess: refresh,
+  })
+  const changePayDays = useMutation({
+    mutationFn: (payDays: number[]) => api.changeSettings({ pay_days: payDays }),
     onSuccess: refresh,
   })
   const changeCategory = useMutation({
@@ -71,7 +117,8 @@ function SettingsPage() {
     return <p className="text-sm text-muted-foreground">Loading…</p>
   }
 
-  const error = changeLimit.error ?? changeCategory.error ?? createCategory.error
+  const error =
+    changeLimit.error ?? changePayDays.error ?? changeCategory.error ?? createCategory.error
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -93,6 +140,25 @@ function SettingsPage() {
             onCommit={(cents) => changeLimit.mutate(cents)}
           />
           <span className="text-sm text-muted-foreground">per month</span>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Pay days</CardTitle>
+          <CardDescription>
+            The days of the month you are due to be paid, such as 1, 16. Pay that arrives
+            early or late because of a weekend or holiday then counts in the month of its
+            nearest pay day, not the month it landed in. Use 31 for the last day of the
+            month. Leave blank to count pay in the month it arrives.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center gap-2">
+          <Label htmlFor="pay-days">Days</Label>
+          <PayDaysInput
+            payDays={settings.data.pay_days}
+            onCommit={(payDays) => changePayDays.mutate(payDays)}
+          />
         </CardContent>
       </Card>
 

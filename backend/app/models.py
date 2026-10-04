@@ -43,6 +43,9 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     spending_limit_cents: Mapped[int | None]
+    # The Pay Days: days of the month the User is due to be paid, such as
+    # [1, 16]. Empty or missing means Pay counts in the Month it was posted.
+    pay_days: Mapped[list[int] | None] = mapped_column(JSON)
 
 
 class Account(Base):

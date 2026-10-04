@@ -10,9 +10,11 @@ A personal app for seeing where your money goes each month. You export CSV files
 - **Trends** across months: spending, savings rate, importance and a category-by-month table.
 - **Rules**: every rule, the transactions it applies to, and a form to change or delete it. Transactions you have not classified by hand follow the rules, so changing or deleting a rule updates them, and a transaction no rule matches any more goes back to Review. When two rules match, one with an amount wins, then the one with the longest text.
 - **Transactions**: every transaction, with filters (including money in or money out) and totals. Click a row to change it.
-- **Settings**: your monthly spending limit, and your categories and their monthly targets.
+- **Settings**: your monthly spending limit, your pay days, and your categories and their monthly targets.
 
 Money in is counted as other income until you mark it as pay, by hand or with a rule on your employer's description, so an e-transfer from a friend does not pass for earnings.
+
+If you are paid on fixed days, enter them as pay days in Settings (for example 1, 16). Pay that lands a day or two early or late because of a weekend or holiday then counts in the month it was meant for, so a month does not show three paycheques and the next one only one. The transaction keeps its real date.
 
 Money moved between your own accounts (a credit card payment, a transfer to savings) is marked as a transfer and left out of spending and income.
 
@@ -58,7 +60,7 @@ docker compose --env-file .env.demo down -v       # stop it and delete its datab
 About six months ending today, for a chequing account and a credit card. It is built to exercise the awkward cases:
 
 - a gas station whose fill-ups and snacks share one description, left in Review
-- pay on the 1st and 16th, marked as pay by a rule and moved to the Friday before when that is a weekend, so some months get three pay deposits and some get one
+- pay on the 1st and 16th, marked as pay by a rule and moved to the Friday before when that is a weekend, so some months receive three pay deposits and some one; pay days of 1 and 16 are set, which puts each back in its own month
 - e-transfers coming in that are not pay, and a refund
 - a credit card payment that shows up on both accounts
 - a monthly US charge that arrives as an amount in another currency

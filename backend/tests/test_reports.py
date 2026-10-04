@@ -199,3 +199,57 @@ def test_other_income_is_counted_apart_from_pay_and_not_in_the_savings_rate(
     assert june["other_income_cents"] == 40000
     # 750 of the 1,000 Pay is left; the 400 e-transfer does not raise it.
     assert june["savings_rate"] == pytest.approx(0.75)
+
+
+def test_pay_counts_in_the_month_of_its_nearest_pay_day(client, session, account):
+    # August 1st 2026 is a Saturday, so that pay arrives on Friday July 31st.
+    statement = b"""Date,Description,Amount
+2026-07-02,PAYROLL,1000.00
+2026-07-16,PAYROLL,1000.00
+2026-07-31,PAYROLL,1000.00
+2026-07-31,E-TRANSFER FROM SAM,50.00
+2026-08-14,PAYROLL,1000.00
+"""
+    client.put(f"/api/accounts/{account.id}/csv-mapping", json=MAPPING)
+    client.post(
+        f"/api/accounts/{account.id}/imports",
+        files={"file": ("export.csv", statement, "text/csv")},
+    )
+    payroll = session.scalars(
+        select(Transaction).where(
+            Transaction.account_id == account.id, Transaction.description == "PAYROLL"
+        )
+    ).first()
+    client.put(
+        f"/api/transactions/{payroll.id}/classification",
+        json={"kind": "pay", "rule_match_text": "PAYROLL"},
+    )
+
+    by_posting_date = report(client, "2026-07", "2026-08")["months"]
+    response = client.put("/api/settings", json={"pay_days": [16, 1]})
+    july, august = report(client, "2026-07", "2026-08")["months"]
+    listed = client.get("/api/transactions", params={"kind": "pay"}).json()["items"]
+
+    assert [m["pay_cents"] for m in by_posting_date] == [300000, 100000]
+    assert response.json()["pay_days"] == [1, 16]
+    assert july["pay_cents"] == 200000
+    assert august["pay_cents"] == 200000
+    # Only Pay moves: the e-transfer of the same day stays in July.
+    assert july["other_income_cents"] == 5000
+    moved = {t["posted_on"]: t["counts_in_month"] for t in listed}
+    assert moved == {
+        "2026-07-02": None,
+        "2026-07-16": None,
+        "2026-07-31": "2026-08",
+        "2026-08-14": None,
+    }
+
+
+def test_changing_one_setting_leaves_the_other(client):
+    client.put("/api/settings", json={"spending_limit_cents": 300000})
+    client.put("/api/settings", json={"pay_days": [1, 16]})
+    after_limit = client.put("/api/settings", json={"spending_limit_cents": 250000})
+
+    assert after_limit.json() == {"spending_limit_cents": 250000, "pay_days": [1, 16]}
+    assert client.put("/api/settings", json={"pay_days": [0]}).status_code == 422
+    assert client.put("/api/settings", json={"pay_days": [32]}).status_code == 422

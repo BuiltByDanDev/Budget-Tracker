@@ -68,6 +68,8 @@ export type Transaction = {
   category_name: string | null
   importance: Importance | null
   merchant_name: string | null
+  // Set ("2026-08") when Pay counts in a Month other than the one it was posted in.
+  counts_in_month: string | null
 }
 
 export type TransactionPage = {
@@ -179,7 +181,11 @@ export type DataRange = {
 // demo is true in the demo stack, whose database holds mock data.
 export type Mode = { demo: boolean }
 
-export type Settings = { spending_limit_cents: number | null }
+export type Settings = {
+  spending_limit_cents: number | null
+  // The Pay Days, such as [1, 16]. Empty means Pay is not moved between Months.
+  pay_days: number[]
+}
 
 export type CategoryChanges = {
   name?: string
@@ -275,7 +281,8 @@ export const api = {
   changeCategory: (categoryId: number, changes: CategoryChanges) =>
     request<Category>(`/categories/${categoryId}`, json('PATCH', changes)),
   getSettings: () => request<Settings>('/settings'),
-  changeSettings: (settings: Settings) =>
+  // Only the fields that are sent are changed.
+  changeSettings: (settings: Partial<Settings>) =>
     request<Settings>('/settings', json('PUT', settings)),
   monthlyReport: (firstMonth: string, lastMonth: string) =>
     request<MonthlyReport>(

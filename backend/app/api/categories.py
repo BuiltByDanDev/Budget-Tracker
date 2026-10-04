@@ -42,6 +42,8 @@ class MerchantOut(BaseModel):
 class Settings(BaseModel):
     # The Spending Limit. Null means none is set.
     spending_limit_cents: int | None = Field(default=None, ge=0)
+    # The Pay Days, such as [1, 16]. Empty means Pay is not moved between Months.
+    pay_days: list[int] = []
 
 
 def _unused_name(session: Session, user: User, name: str, except_id: int | None = None) -> str:
@@ -113,7 +115,9 @@ def list_merchants(
 
 @router.get("/settings", response_model=Settings)
 def get_settings(user: User = Depends(get_current_user)):
-    return Settings(spending_limit_cents=user.spending_limit_cents)
+    return Settings(
+        spending_limit_cents=user.spending_limit_cents, pay_days=user.pay_days or []
+    )
 
 
 @router.put("/settings", response_model=Settings)
@@ -122,6 +126,13 @@ def change_settings(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
-    user.spending_limit_cents = body.spending_limit_cents
+    """Only the fields that are sent are changed."""
+    sent = body.model_fields_set
+    if "spending_limit_cents" in sent:
+        user.spending_limit_cents = body.spending_limit_cents
+    if "pay_days" in sent:
+        if any(day < 1 or day > 31 for day in body.pay_days):
+            raise HTTPException(422, "A pay day is a day of the month, from 1 to 31")
+        user.pay_days = sorted(set(body.pay_days))
     session.commit()
-    return body
+    return get_settings(user)

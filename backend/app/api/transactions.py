@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import date
 from typing import Literal
 
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.classifying.rules import classify, reapply_rules
 from app.db import get_session
 from app.models import Category, Importance, Kind, Merchant, Rule, Transaction, User
+from app.reporting.monthly import pay_month
 from app.users import get_current_user
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
@@ -31,9 +33,19 @@ class TransactionOut(BaseModel):
     category_name: str | None
     importance: Importance | None
     merchant_name: str | None
+    # Set ("2026-08") when Pay counts in a Month other than the one it was
+    # posted in, because its nearest Pay Day is there.
+    counts_in_month: str | None
 
     @classmethod
-    def from_model(cls, transaction: Transaction) -> "TransactionOut":
+    def from_model(
+        cls, transaction: Transaction, pay_days: Sequence[int] = ()
+    ) -> "TransactionOut":
+        counts_in = None
+        if transaction.kind == Kind.PAY:
+            month = pay_month(transaction.posted_on, pay_days)
+            if month != transaction.posted_on.replace(day=1):
+                counts_in = month.strftime("%Y-%m")
         return cls(
             id=transaction.id,
             posted_on=transaction.posted_on,
@@ -48,6 +60,7 @@ class TransactionOut(BaseModel):
             category_name=transaction.category.name if transaction.category else None,
             importance=transaction.importance,
             merchant_name=transaction.merchant.name if transaction.merchant else None,
+            counts_in_month=counts_in,
         )
 
 
@@ -185,7 +198,7 @@ def list_transactions(
         .offset(offset)
     ).all()
     return TransactionPage(
-        items=[TransactionOut.from_model(t) for t in transactions],
+        items=[TransactionOut.from_model(t, user.pay_days or []) for t in transactions],
         total=total,
         spending_cents=spending,
         pay_cents=pay,
@@ -289,7 +302,7 @@ def classify_transaction(
 
     session.commit()
     return ClassifyResult(
-        transaction=TransactionOut.from_model(transaction),
+        transaction=TransactionOut.from_model(transaction, user.pay_days or []),
         also_classified=also_classified,
     )
 
@@ -308,4 +321,4 @@ def set_amount(
     transaction.amount_cents = body.amount_cents
     transaction.amount_unconverted = False
     session.commit()
-    return TransactionOut.from_model(transaction)
+    return TransactionOut.from_model(transaction, user.pay_days or [])

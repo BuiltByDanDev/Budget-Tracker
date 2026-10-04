@@ -103,8 +103,12 @@ _Avoid_: Uncategorised list, queue, pending
 ### Measuring
 
 **Month**:
-A calendar month. A Transaction belongs to the Month of its posting date.
+A calendar month. A Transaction belongs to the Month of its posting date, except Pay when the User has Pay Days: that belongs to the Month of its nearest Pay Day.
 _Avoid_: Period, cycle, pay period
+
+**Pay Day**:
+A day of the month on which the User is due to be paid, such as the 1st and the 16th. Pay that arrives early or late still counts in the Month of the Pay Day it was for.
+_Avoid_: Payday date, pay schedule, pay period
 
 **Spending**:
 The total of Expenses over some set of Transactions, with Refunds subtracted.
