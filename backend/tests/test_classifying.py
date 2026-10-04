@@ -2,7 +2,7 @@ from datetime import date
 
 from sqlalchemy import select
 
-from app.models import Category, Importance, Kind, Transaction
+from app.models import Category, Importance, Kind, Rule, Transaction
 
 MAPPING = {
     "has_header": True,
@@ -172,6 +172,172 @@ def test_the_longest_matching_rule_wins(client, session, user, account):
     transactions = by_description(session, account)
     assert transactions["AMZN PRIME VIDEO*QQ1"].category_id == entertainment
     assert transactions["AMZN Mktp CA*1"].category_id == shopping
+
+
+GAS = b"""Date,Description,Amount
+2026-05-02,PETRO-CANADA 1234,-62.00
+2026-05-03,PETRO-CANADA 1234,-4.50
+2026-05-10,PETRO-CANADA 1234,-71.25
+2026-05-11,PETRO-CANADA 1234,-6.00
+2026-05-20,PETRO-CANADA 1234,-62.00
+"""
+
+
+def gas_transactions(session, account):
+    session.expire_all()
+    return session.scalars(
+        select(Transaction)
+        .where(Transaction.account_id == account.id)
+        .order_by(Transaction.posted_on)
+    ).all()
+
+
+def test_a_rule_with_an_amount_range_only_matches_amounts_inside_it(
+    client, session, user, account
+):
+    upload(client, account, GAS)
+    transport = category_id(session, user, "Transportation")
+    fill_up = gas_transactions(session, account)[0]
+
+    response = classify(
+        client,
+        fill_up,
+        kind="expense",
+        category_id=transport,
+        importance="essential",
+        rule_match_text="PETRO",
+        # Money out between $40 and $150.
+        rule_amount_min_cents=-15000,
+        rule_amount_max_cents=-4000,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["also_classified"] == 2
+    categories = [t.category_id for t in gas_transactions(session, account)]
+    assert categories == [transport, None, transport, None, transport]
+
+
+def test_a_rule_with_an_exact_amount(client, session, user, account):
+    upload(client, account, GAS)
+    transport = category_id(session, user, "Transportation")
+    fill_up = gas_transactions(session, account)[0]
+
+    classify(
+        client,
+        fill_up,
+        kind="expense",
+        category_id=transport,
+        importance="essential",
+        rule_match_text="PETRO",
+        rule_amount_min_cents=-6200,
+        rule_amount_max_cents=-6200,
+    )
+
+    categories = [t.category_id for t in gas_transactions(session, account)]
+    assert categories == [transport, None, None, None, transport]
+
+
+def test_a_rule_with_an_amount_beats_a_longer_text_only_rule(
+    client, session, user, account
+):
+    upload(client, account, GAS)
+    transport = category_id(session, user, "Transportation")
+    eating_out = category_id(session, user, "Dining")
+    transactions = gas_transactions(session, account)
+    classify(
+        client,
+        transactions[0],
+        kind="expense",
+        category_id=transport,
+        importance="essential",
+        rule_match_text="PETRO",
+        rule_amount_min_cents=-15000,
+        rule_amount_max_cents=-4000,
+    )
+    classify(
+        client,
+        transactions[1],
+        kind="expense",
+        category_id=eating_out,
+        importance="nice_to_have",
+        rule_match_text="PETRO-CANADA 1234",
+    )
+
+    june = b"Date,Description,Amount\n2026-06-01,PETRO-CANADA 1234,-80.00\n2026-06-02,PETRO-CANADA 1234,-3.25\n"
+    upload(client, account, june)
+
+    transactions = gas_transactions(session, account)
+    assert transactions[-2].category_id == transport
+    assert transactions[-1].category_id == eating_out
+
+
+def test_rules_with_the_same_text_and_different_amounts_are_separate(
+    client, session, user, account
+):
+    upload(client, account, GAS)
+    transport = category_id(session, user, "Transportation")
+    eating_out = category_id(session, user, "Dining")
+    transactions = gas_transactions(session, account)
+    classify(
+        client,
+        transactions[0],
+        kind="expense",
+        category_id=transport,
+        importance="essential",
+        rule_match_text="PETRO",
+        rule_amount_min_cents=-15000,
+        rule_amount_max_cents=-4000,
+    )
+    classify(
+        client,
+        transactions[1],
+        kind="expense",
+        category_id=eating_out,
+        importance="nice_to_have",
+        rule_match_text="PETRO",
+    )
+
+    rules = session.scalars(select(Rule).where(Rule.user_id == user.id)).all()
+    assert len(rules) == 2
+    # Saving the same text and range again changes that Rule, not a new one.
+    classify(
+        client,
+        transactions[0],
+        kind="expense",
+        category_id=transport,
+        importance="have_to_have",
+        rule_match_text="petro",
+        rule_amount_min_cents=-15000,
+        rule_amount_max_cents=-4000,
+    )
+    session.expire_all()
+    rules = session.scalars(select(Rule).where(Rule.user_id == user.id)).all()
+    assert len(rules) == 2
+
+
+def test_a_rule_amount_range_must_include_the_transaction(
+    client, session, user, account
+):
+    upload(client, account, GAS)
+    snack = gas_transactions(session, account)[1]
+    body = dict(
+        kind="expense",
+        category_id=category_id(session, user, "Transportation"),
+        importance="essential",
+        rule_match_text="PETRO",
+    )
+
+    outside = classify(
+        client, snack, **body, rule_amount_min_cents=-15000, rule_amount_max_cents=-4000
+    )
+    one_end = classify(client, snack, **body, rule_amount_min_cents=-450)
+    backwards = classify(
+        client, snack, **body, rule_amount_min_cents=-100, rule_amount_max_cents=-900
+    )
+
+    assert outside.status_code == 422
+    assert one_end.status_code == 422
+    assert backwards.status_code == 422
 
 
 def test_rules_are_applied_on_import(client, session, user, account):

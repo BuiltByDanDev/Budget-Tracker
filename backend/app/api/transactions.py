@@ -65,6 +65,11 @@ class Classification(BaseModel):
     merchant_name: str | None = None
     # When set, also saves a Rule for Descriptions containing this text.
     rule_match_text: str | None = None
+    # With rule_match_text: the Rule also requires an amount in this range,
+    # ends included and signed (money out is negative). Set both or neither;
+    # the same value twice means an exact amount.
+    rule_amount_min_cents: int | None = None
+    rule_amount_max_cents: int | None = None
 
 
 class AmountIn(BaseModel):
@@ -214,20 +219,44 @@ def classify_transaction(
                 422, "Rule text must appear in this transaction's description"
             )
 
+    amount_min, amount_max = body.rule_amount_min_cents, body.rule_amount_max_cents
+    if amount_min is not None or amount_max is not None:
+        if not match_text:
+            raise HTTPException(422, "A rule amount needs rule text as well")
+        if amount_min is None or amount_max is None:
+            raise HTTPException(422, "A rule amount needs both ends of its range")
+        if amount_min > amount_max:
+            raise HTTPException(422, "The rule's amount range is the wrong way round")
+        if not amount_min <= transaction.amount_cents <= amount_max:
+            raise HTTPException(
+                422, "The rule's amount range must include this transaction's amount"
+            )
+
     merchant_id = _merchant_id(session, user, body.merchant_name)
     classify(transaction, body.kind, body.category_id, body.importance, merchant_id)
     transaction.set_by_hand = True
 
     also_classified = 0
     if match_text:
+        # A Rule is replaced only by one with the same text and the same amount
+        # range, so "PETRO" and "PETRO between $40 and $150" are two Rules.
+        # is_not_distinct_from is "equals" that also treats two NULLs as equal.
         rule = session.scalar(
             select(Rule).where(
                 Rule.user_id == user.id,
                 func.lower(Rule.match_text) == match_text.lower(),
+                Rule.amount_min_cents.is_not_distinct_from(amount_min),
+                Rule.amount_max_cents.is_not_distinct_from(amount_max),
             )
         )
         if rule is None:
-            rule = Rule(user_id=user.id, match_text=match_text, kind=body.kind)
+            rule = Rule(
+                user_id=user.id,
+                match_text=match_text,
+                amount_min_cents=amount_min,
+                amount_max_cents=amount_max,
+                kind=body.kind,
+            )
             session.add(rule)
         rule.kind = transaction.kind
         rule.category_id = transaction.category_id

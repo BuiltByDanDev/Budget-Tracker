@@ -85,7 +85,7 @@ Spending the User wishes they had not done.
 _Avoid_: Regret
 
 **Rule**:
-A standing instruction that Transactions whose Description contains given text get a given Kind, Category, Importance and Merchant.
+A standing instruction that Transactions whose Description contains given text get a given Kind, Category, Importance and Merchant. A Rule may also require the amount to be exact or within a range.
 _Avoid_: Filter, matcher, auto-categorisation
 
 **Review Inbox**:

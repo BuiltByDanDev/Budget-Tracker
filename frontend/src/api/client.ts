@@ -107,6 +107,11 @@ export type Classification = {
   merchant_name: string | null
   // When set, also saves a Rule for Descriptions containing this text.
   rule_match_text: string | null
+  // With rule_match_text: the Rule also requires an amount in this range, ends
+  // included and signed (money out is negative). Both or neither; the same
+  // value twice means an exact amount.
+  rule_amount_min_cents: number | null
+  rule_amount_max_cents: number | null
 }
 
 export type ClassifyResult = {

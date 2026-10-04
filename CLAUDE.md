@@ -22,7 +22,7 @@ Read `CONTEXT.md` before naming anything: it is the glossary, and code, UI text 
 
 - Amounts are integer cents, negative for money out. `imported_amount_cents` is never edited; duplicate detection uses it.
 - Every table has `user_id`. `app/users.py::get_current_user` returns the one default User and is the only place login needs to plug in.
-- A Rule never changes a Transaction with `set_by_hand`, and only runs on Transactions with no Category. The longest matching rule text wins.
+- A Rule never changes a Transaction with `set_by_hand`, and only runs on Transactions with no Category. A Rule with an amount beats a text-only one; then the longest matching rule text wins.
 - Transfers are excluded from Spending and Income everywhere. A Refund is an Expense with a positive amount.
 - A Month is a calendar month by posting date.
 - UI components come from shadcn/ui (`frontend/src/components/ui/`, generated; do not hand-edit). Charts use one blue for every series, with red reserved for "over"; colours are the `--viz-*` variables in `frontend/src/index.css`.

@@ -83,6 +83,12 @@ class Rule(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     # Matches when the Description contains this text, ignoring case.
     match_text: Mapped[str]
+    # Optional: also requires the amount to be in this range, ends included.
+    # Signed like Transaction.amount_cents, so money out between $40 and $150
+    # is min -15000, max -4000. Both empty means any amount; an exact amount
+    # has both the same.
+    amount_min_cents: Mapped[int | None]
+    amount_max_cents: Mapped[int | None]
     kind: Mapped[Kind] = mapped_column(_enum_column(Kind))
     category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"))
     importance: Mapped[Importance | None] = mapped_column(_enum_column(Importance))

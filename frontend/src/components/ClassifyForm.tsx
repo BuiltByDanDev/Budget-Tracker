@@ -15,6 +15,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '@/components/ui/native-select'
+import { formatCents, parseDollars } from '@/lib/format'
 import {
   IMPORTANCE_HINTS,
   IMPORTANCE_LABELS,
@@ -23,6 +24,9 @@ import {
   KINDS,
   suggestMatchText,
 } from '@/lib/labels'
+
+// Which amounts a new Rule applies to.
+type RuleAmount = 'any' | 'exact' | 'between'
 
 type Props = {
   transaction: Transaction
@@ -45,6 +49,23 @@ export function ClassifyForm({ transaction, onSaved, onCancel }: Props) {
     suggestMatchText(transaction.description),
   )
 
+  // The User types amounts without a sign; money out or in comes from the Transaction.
+  const size = Math.abs(transaction.amount_cents)
+  const [ruleAmount, setRuleAmount] = useState<RuleAmount>('any')
+  const [lowText, setLowText] = useState((size / 100).toFixed(2))
+  const [highText, setHighText] = useState((size / 100).toFixed(2))
+
+  const low = ruleAmount === 'between' ? parseDollars(lowText) : size
+  const high = ruleAmount === 'between' ? parseDollars(highText) : size
+  const rangeIsValid =
+    low !== null && high !== null && low >= 0 && low <= size && size <= high
+  // Signed like amount_cents: for money out the larger figure is the minimum.
+  const moneyOut = transaction.amount_cents < 0
+  const amountRange =
+    makeRule && ruleAmount !== 'any' && rangeIsValid
+      ? { min: moneyOut ? -high : low, max: moneyOut ? -low : high }
+      : null
+
   const save = useMutation({
     mutationFn: () =>
       api.classify(transaction.id, {
@@ -53,6 +74,8 @@ export function ClassifyForm({ transaction, onSaved, onCancel }: Props) {
         importance: kind === 'expense' ? importance : null,
         merchant_name: merchantName.trim() || null,
         rule_match_text: makeRule ? matchText : null,
+        rule_amount_min_cents: amountRange?.min ?? null,
+        rule_amount_max_cents: amountRange?.max ?? null,
       }),
     onSuccess: async (result) => {
       await queryClient.invalidateQueries()
@@ -60,7 +83,8 @@ export function ClassifyForm({ transaction, onSaved, onCancel }: Props) {
     },
   })
 
-  const complete = kind !== 'expense' || (categoryId !== null && importance !== null)
+  const classified = kind !== 'expense' || (categoryId !== null && importance !== null)
+  const complete = classified && (!makeRule || ruleAmount === 'any' || rangeIsValid)
   const id = (name: string) => `${name}-${transaction.id}`
 
   return (
@@ -173,6 +197,51 @@ export function ClassifyForm({ transaction, onSaved, onCancel }: Props) {
           onChange={(event) => setMatchText(event.target.value)}
         />
       </div>
+
+      {makeRule && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pl-6 text-sm">
+          <Label htmlFor={id('rule-amount')} className="font-normal">
+            and the amount is
+          </Label>
+          <NativeSelect
+            id={id('rule-amount')}
+            value={ruleAmount}
+            onChange={(event) => setRuleAmount(event.target.value as RuleAmount)}
+          >
+            <NativeSelectOption value="any">any amount</NativeSelectOption>
+            <NativeSelectOption value="exact">
+              exactly {formatCents(size)}
+            </NativeSelectOption>
+            <NativeSelectOption value="between">between</NativeSelectOption>
+          </NativeSelect>
+          {ruleAmount === 'between' && (
+            <>
+              <Input
+                aria-label="Lowest amount"
+                className="w-28 text-right tabular-nums"
+                inputMode="decimal"
+                aria-invalid={!rangeIsValid}
+                value={lowText}
+                onChange={(event) => setLowText(event.target.value)}
+              />
+              <span>and</span>
+              <Input
+                aria-label="Highest amount"
+                className="w-28 text-right tabular-nums"
+                inputMode="decimal"
+                aria-invalid={!rangeIsValid}
+                value={highText}
+                onChange={(event) => setHighText(event.target.value)}
+              />
+              {!rangeIsValid && (
+                <span className="text-destructive">
+                  The range has to include this transaction's {formatCents(size)}.
+                </span>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {save.error && <p className="text-sm text-destructive">{save.error.message}</p>}
 
