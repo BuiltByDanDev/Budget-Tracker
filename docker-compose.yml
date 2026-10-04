@@ -1,0 +1,56 @@
+# Development stack. Open http://localhost:8088 (or APP_PORT).
+#
+#   browser -> nginx -> web (Vite dev server, hot reload)
+#                    -> api (FastAPI, auto reload) -> db (Postgres)
+#
+# nginx is the only container reachable from the host.
+
+services:
+  nginx:
+    image: nginx:1.29-alpine
+    ports:
+      - "${APP_PORT:-8088}:80"
+    volumes:
+      - ./nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+      - api
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: dev
+    volumes:
+      - ./frontend:/app
+      # Keep the container's node_modules instead of the host's.
+      - /app/node_modules
+
+  api:
+    build: ./backend
+    # Apply any new migrations, then start the API with auto reload.
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-budget}:${POSTGRES_PASSWORD:-budget}@db:5432/${POSTGRES_DB:-budget}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-budget}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-budget}
+      POSTGRES_DB: ${POSTGRES_DB:-budget}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  db-data:
