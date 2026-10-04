@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react'
 import type { ClassifyResult, Transaction } from '@/api/client'
 import { ClassifyForm } from '@/components/ClassifyForm'
+import { UnconvertedAmountForm } from '@/components/UnconvertedAmountForm'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -108,12 +109,20 @@ export function TransactionTable({ transactions, openFirst, onSaved }: Props) {
                     transaction.amount_cents > 0 && 'text-emerald-600',
                   )}
                 >
+                  {transaction.amount_unconverted && (
+                    <Badge variant="outline" className="mr-2 text-foreground">
+                      Other currency
+                    </Badge>
+                  )}
                   {formatCents(transaction.amount_cents)}
                 </TableCell>
               </TableRow>
               {open && (
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  <TableCell colSpan={5} className="p-4 whitespace-normal">
+                  <TableCell colSpan={5} className="space-y-4 p-4 whitespace-normal">
+                    {transaction.amount_unconverted && (
+                      <UnconvertedAmountForm transaction={transaction} />
+                    )}
                     <ClassifyForm
                       key={transaction.id}
                       transaction={transaction}

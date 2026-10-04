@@ -9,9 +9,16 @@ import {
   type ImportSummary,
 } from '@/api/client'
 import { CsvMappingForm } from '@/components/CsvMappingForm'
+import { CsvMappingResult } from '@/components/CsvMappingResult'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -44,7 +51,7 @@ function ImportPage() {
   })
 
   const loadPreview = useMutation({
-    mutationFn: api.previewCsv,
+    mutationFn: (chosen: File) => api.previewCsv(chosen),
     onSuccess: (result) => {
       setPreview(result)
       if (account && !account.csv_mapping) setDraftMapping(guessMapping(result.rows))
@@ -180,26 +187,40 @@ function ImportPage() {
       {account && preview && (
         <Card>
           <CardHeader>
-            <CardTitle>3. Columns</CardTitle>
+            <CardTitle>3. How to read this file</CardTitle>
+            {draftMapping && (
+              <CardDescription>
+                Every bank lays its CSV out differently. You only do this once per account;
+                the answers are saved for next time.
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent>
             {draftMapping ? (
-              <CsvMappingForm
-                rows={preview.rows}
-                mapping={draftMapping}
-                onChange={setDraftMapping}
-              />
+              <div className="space-y-6">
+                <CsvMappingForm
+                  rows={preview.rows}
+                  mapping={draftMapping}
+                  onChange={setDraftMapping}
+                />
+                {file && (
+                  <div className="border-t pt-6">
+                    <h3 className="mb-2 text-sm font-medium">Check the result</h3>
+                    <CsvMappingResult file={file} mapping={draftMapping} />
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex items-center justify-between gap-4 text-sm">
                 <span className="text-muted-foreground">
-                  Using the column mapping saved for {account.name}.
+                  Reading this file the way you set up for {account.name}.
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setDraftMapping(account.csv_mapping)}
                 >
-                  Change mapping
+                  Change how it's read
                 </Button>
               </div>
             )}
@@ -223,7 +244,7 @@ function ImportPage() {
             )}
             {importError && importError.rowErrors.length > 0 && !draftMapping && (
               <p className="mt-2">
-                If the bank changed its export layout, use “Change mapping” above.
+                If the bank changed its export layout, use “Change how it's read” above.
               </p>
             )}
           </AlertDescription>
@@ -234,8 +255,19 @@ function ImportPage() {
         <Alert>
           <AlertTitle>Imported {summary.filename}</AlertTitle>
           <AlertDescription>
-            {summary.new_count} new, {summary.skipped_count} skipped as duplicates.{' '}
-            <Link to="/transactions">View transactions</Link>
+            <p>
+              {summary.new_count} new, {summary.skipped_count} skipped as duplicates.{' '}
+              <Link to="/transactions">View transactions</Link>
+            </p>
+            {summary.unconverted_count > 0 && (
+              <p>
+                {summary.unconverted_count}{' '}
+                {summary.unconverted_count === 1 ? 'transaction has' : 'transactions have'} an
+                amount in another currency and{' '}
+                {summary.unconverted_count === 1 ? 'is' : 'are'} marked “Other currency”. Open
+                one in Transactions to enter the converted amount or keep it as it is.
+              </p>
+            )}
           </AlertDescription>
         </Alert>
       )}

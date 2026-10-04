@@ -112,6 +112,12 @@ class Transaction(Base):
     posted_on: Mapped[date]
     # Negative for money out, positive for money in.
     amount_cents: Mapped[int]
+    # The amount as read from the CSV. Never edited, so a re-import still
+    # recognises the row after the User corrects amount_cents.
+    imported_amount_cents: Mapped[int]
+    # True while the amount is one read from the CSV's second amount column
+    # (another currency) that the User has not yet confirmed or converted.
+    amount_unconverted: Mapped[bool] = mapped_column(default=False)
     # Exactly what the bank wrote. Never edited.
     description: Mapped[str]
     kind: Mapped[Kind] = mapped_column(_enum_column(Kind))

@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import func, select
 
 from app.models import Kind, Transaction
@@ -127,3 +129,97 @@ def test_transactions_are_listed_newest_first(client, account):
     assert page["items"][0]["description"] == "PAYROLL"
     assert page["items"][0]["account_name"] == "Chequing"
     assert page["items"][-1]["amount_cents"] == -150000
+
+
+def test_preview_shows_how_a_mapping_reads_the_file_without_storing(
+    client, session, account
+):
+    response = client.post(
+        "/api/csv-preview",
+        files={"file": ("export.csv", JAN_TO_FEB, "text/csv")},
+        data={"mapping": json.dumps(MAPPING)},
+    )
+
+    preview = response.json()
+    assert preview["rows"][0] == ["Date", "Description", "Amount"]
+    assert preview["transactions"][0] == {
+        "posted_on": "2026-01-15",
+        "description": "RENT",
+        "amount_cents": -150000,
+        "unconverted": False,
+    }
+    assert stored_count(session, account) == 0
+
+
+def test_preview_reports_rows_the_mapping_cannot_read(client):
+    wrong_dates = {**MAPPING, "date_format": "%d/%m/%Y"}
+
+    preview = client.post(
+        "/api/csv-preview",
+        files={"file": ("export.csv", JAN_TO_FEB, "text/csv")},
+        data={"mapping": json.dumps(wrong_dates)},
+    ).json()
+
+    assert preview["transactions"] == []
+    assert preview["error_count"] == 4
+    assert preview["row_errors"][0]["line"] == 2
+
+
+TWO_CURRENCY_MAPPING = {
+    "has_header": True,
+    "date_column": 0,
+    "date_format": "%Y-%m-%d",
+    "description_columns": [1],
+    "amount_mode": "single",
+    "amount_column": 2,
+    "fallback_amount_column": 3,
+}
+
+TWO_CURRENCIES = b"""Date,Description,CAD$,USD$
+2026-03-01,COFFEE SHOP,-4.50,
+2026-03-02,US STORE ONLINE,,-20.00
+"""
+
+
+def import_two_currencies(client, account):
+    client.put(f"/api/accounts/{account.id}/csv-mapping", json=TWO_CURRENCY_MAPPING)
+    return upload(client, account, TWO_CURRENCIES).json()
+
+
+def test_a_usd_only_row_is_imported_as_an_unconverted_amount(client, account):
+    summary = import_two_currencies(client, account)
+
+    flagged = client.get("/api/transactions", params={"amount_unconverted": True}).json()
+
+    assert summary["unconverted_count"] == 1
+    assert flagged["total"] == 1
+    assert flagged["items"][0]["description"] == "US STORE ONLINE"
+    assert flagged["items"][0]["amount_cents"] == -2000
+
+
+def test_setting_the_amount_settles_an_unconverted_amount(client, account):
+    import_two_currencies(client, account)
+    flagged = client.get("/api/transactions", params={"amount_unconverted": True}).json()
+
+    settled = client.put(
+        f"/api/transactions/{flagged['items'][0]['id']}/amount",
+        json={"amount_cents": -2740},
+    ).json()
+
+    assert settled["amount_cents"] == -2740
+    assert settled["imported_amount_cents"] == -2000
+    assert settled["amount_unconverted"] is False
+
+
+def test_a_corrected_amount_is_still_a_duplicate_on_reimport(client, session, account):
+    import_two_currencies(client, account)
+    flagged = client.get("/api/transactions", params={"amount_unconverted": True}).json()
+    client.put(
+        f"/api/transactions/{flagged['items'][0]['id']}/amount",
+        json={"amount_cents": -2740},
+    )
+
+    again = upload(client, account, TWO_CURRENCIES).json()
+
+    assert (again["new_count"], again["skipped_count"]) == (0, 2)
+    assert stored_count(session, account) == 2

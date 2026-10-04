@@ -84,3 +84,37 @@ def test_unreadable_rows_are_all_reported_with_their_line():
         parse_csv(content, SIGNED)
 
     assert [error.line for error in raised.value.errors] == [3, 4, 5]
+
+
+TWO_CURRENCIES = SIGNED.model_copy(update={"amount_column": 2, "fallback_amount_column": 3})
+
+
+def test_empty_amount_falls_back_to_the_second_column():
+    content = b"Date,Description,CAD$,USD$\n2026-03-01,COFFEE,-4.50,\n2026-03-02,US STORE,,-20.00\n"
+
+    rows = parse_csv(content, TWO_CURRENCIES)
+
+    # The USD amount is taken as written and marked as unconverted.
+    assert [row.amount_cents for row in rows] == [-450, -2000]
+    assert [row.unconverted for row in rows] == [False, True]
+
+
+def test_a_row_with_no_amount_in_either_column_is_reported():
+    content = b"Date,Description,CAD$,USD$\n2026-03-01,COFFEE,,\n"
+
+    with pytest.raises(CsvParseError) as raised:
+        parse_csv(content, TWO_CURRENCIES)
+
+    assert raised.value.errors[0].message == "no amount in this row"
+
+
+def test_a_mapping_must_name_the_columns_its_mode_needs():
+    with pytest.raises(ValueError):
+        CsvMapping(
+            has_header=True,
+            date_column=0,
+            date_format="%Y-%m-%d",
+            description_columns=[1],
+            amount_mode="split",
+            money_out_column=2,
+        )

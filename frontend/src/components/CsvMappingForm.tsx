@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { CsvMapping } from '@/api/client'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -13,17 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-
-const DATE_FORMATS = [
-  { value: '%Y-%m-%d', example: '2026-03-31' },
-  { value: '%m/%d/%Y', example: '03/31/2026' },
-  { value: '%d/%m/%Y', example: '31/03/2026' },
-  { value: '%Y/%m/%d', example: '2026/03/31' },
-  { value: '%m/%d/%y', example: '03/31/26' },
-  { value: '%d-%b-%Y', example: '31-Mar-2026' },
-  { value: '%b %d, %Y', example: 'Mar 31, 2026' },
-  { value: '%Y%m%d', example: '20260331' },
-]
+import { DATE_FORMATS } from '@/lib/csvMapping'
+import { cn } from '@/lib/utils'
 
 type Props = {
   rows: string[][]
@@ -31,29 +23,90 @@ type Props = {
   onChange: (mapping: CsvMapping) => void
 }
 
+function Question({
+  title,
+  help,
+  children,
+}: {
+  title: string
+  help?: string
+  children: ReactNode
+}) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium">{title}</legend>
+      {help && <p className="text-sm text-muted-foreground">{help}</p>}
+      {children}
+    </fieldset>
+  )
+}
+
+function Choice({
+  name,
+  checked,
+  onChoose,
+  title,
+  example,
+}: {
+  name: string
+  checked: boolean
+  onChoose: () => void
+  title: string
+  example: string
+}) {
+  return (
+    <label
+      className={cn(
+        'flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm',
+        checked && 'border-primary bg-muted/50',
+      )}
+    >
+      <input
+        type="radio"
+        name={name}
+        className="mt-0.5 accent-primary"
+        checked={checked}
+        onChange={onChoose}
+      />
+      <span>
+        <span className="font-medium">{title}</span>
+        <span className="block text-muted-foreground">{example}</span>
+      </span>
+    </label>
+  )
+}
+
+/** Asks the User, in plain questions, how to read their bank's CSV. */
 export function CsvMappingForm({ rows, mapping, onChange }: Props) {
   const columnCount = Math.max(...rows.map((row) => row.length))
   const columns = Array.from({ length: columnCount }, (_, index) => index)
+  const bodyRows = mapping.has_header ? rows.slice(1) : rows
+
   const columnName = (index: number) =>
     (mapping.has_header && rows[0]?.[index]) || `Column ${index + 1}`
-  const bodyRows = mapping.has_header ? rows.slice(1) : rows
+  // The first value found in a column, so the User can recognise it.
+  const sample = (index: number) =>
+    bodyRows.map((row) => row[index]?.trim()).find((cell) => cell) ?? ''
+  const columnLabel = (index: number) =>
+    sample(index) ? `${columnName(index)} (e.g. ${sample(index)})` : columnName(index)
 
   const set = (changes: Partial<CsvMapping>) => onChange({ ...mapping, ...changes })
 
   const columnSelect = (
-    id: string,
+    label: string,
     value: number | null,
-    onPick: (column: number) => void,
+    onPick: (column: number | null) => void,
+    emptyOption = 'Choose…',
   ) => (
     <NativeSelect
-      id={id}
+      aria-label={label}
       value={value ?? ''}
-      onChange={(event) => onPick(Number(event.target.value))}
+      onChange={(event) => onPick(event.target.value === '' ? null : Number(event.target.value))}
     >
-      {value === null && <NativeSelectOption value="">Choose…</NativeSelectOption>}
+      <NativeSelectOption value="">{emptyOption}</NativeSelectOption>
       {columns.map((index) => (
         <NativeSelectOption key={index} value={index}>
-          {columnName(index)}
+          {columnLabel(index)}
         </NativeSelectOption>
       ))}
     </NativeSelect>
@@ -61,48 +114,50 @@ export function CsvMappingForm({ rows, mapping, onChange }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columns.map((index) => (
-                <TableHead key={index}>{columnName(index)}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {bodyRows.slice(0, 5).map((row, rowIndex) => (
-              <TableRow key={rowIndex}>
+      <div>
+        <p className="mb-2 text-sm text-muted-foreground">
+          The start of your file. Answer the questions below so each transaction's date,
+          description and amount are read from the right columns.
+        </p>
+        <div className="overflow-x-auto rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
                 {columns.map((index) => (
-                  <TableCell key={index} className="whitespace-nowrap">
-                    {row[index]}
-                  </TableCell>
+                  <TableHead key={index}>{columnName(index)}</TableHead>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {bodyRows.slice(0, 4).map((row, rowIndex) => (
+                <TableRow key={rowIndex}>
+                  {columns.map((index) => (
+                    <TableCell key={index} className="whitespace-nowrap">
+                      {row[index]}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <Label className="mt-3 flex items-center gap-2 font-normal">
+          <Checkbox
+            checked={mapping.has_header}
+            onCheckedChange={(checked) => set({ has_header: checked })}
+          />
+          The first row of the file is column titles, not a transaction
+        </Label>
       </div>
 
-      <Label className="flex items-center gap-2">
-        <Checkbox
-          checked={mapping.has_header}
-          onCheckedChange={(checked) => set({ has_header: checked })}
-        />
-        The first row is a header
-      </Label>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="date-column">Date column</Label>
-          {columnSelect('date-column', mapping.date_column, (column) =>
-            set({ date_column: column }),
+      <Question title="1. Which column has the date?">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {columnSelect('Date column', mapping.date_column, (column) =>
+            set({ date_column: column ?? 0 }),
           )}
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="date-format">Dates look like</Label>
+          <span className="text-muted-foreground">written like</span>
           <NativeSelect
-            id="date-format"
+            aria-label="Date format"
             value={mapping.date_format}
             onChange={(event) => set({ date_format: event.target.value })}
           >
@@ -113,11 +168,13 @@ export function CsvMappingForm({ rows, mapping, onChange }: Props) {
             ))}
           </NativeSelect>
         </div>
-      </div>
+      </Question>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">Description column(s)</legend>
-        <div className="flex flex-wrap gap-x-5 gap-y-2">
+      <Question
+        title="2. Which column says what the transaction was?"
+        help="The text your bank wrote, such as the shop's name. This is what you will see in your transaction list and what rules match on. If your bank spreads it over two columns, tick both and they are joined together."
+      >
+        <div className="grid gap-2 sm:grid-cols-2">
           {columns.map((index) => (
             <Label key={index} className="flex items-center gap-2 font-normal">
               <Checkbox
@@ -130,69 +187,92 @@ export function CsvMappingForm({ rows, mapping, onChange }: Props) {
                   })
                 }
               />
-              {columnName(index)}
+              <span className="truncate">{columnLabel(index)}</span>
             </Label>
           ))}
         </div>
-      </fieldset>
+      </Question>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="amount-mode">Amounts are in</Label>
-        <NativeSelect
-          id="amount-mode"
-          value={mapping.amount_mode}
-          onChange={(event) =>
-            set({ amount_mode: event.target.value as CsvMapping['amount_mode'] })
-          }
-        >
-          <NativeSelectOption value="single">One column</NativeSelectOption>
-          <NativeSelectOption value="split">
-            Separate money out and money in columns
-          </NativeSelectOption>
-        </NativeSelect>
-      </div>
+      <Question title="3. How does this file show the amount of each transaction?">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Choice
+            name="amount-mode"
+            checked={mapping.amount_mode === 'single'}
+            onChoose={() => set({ amount_mode: 'single' })}
+            title="In one column"
+            example="Spending and money received are in the same column, e.g. -25.00 and 1,200.00."
+          />
+          <Choice
+            name="amount-mode"
+            checked={mapping.amount_mode === 'split'}
+            onChoose={() => set({ amount_mode: 'split' })}
+            title="In two columns"
+            example="One column for money leaving the account and another for money arriving, e.g. Withdrawals and Deposits."
+          />
+        </div>
+      </Question>
 
       {mapping.amount_mode === 'single' ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="amount-column">Amount column</Label>
-            {columnSelect('amount-column', mapping.amount_column, (column) =>
+        <>
+          <Question title="4. Which column has the amount?">
+            {columnSelect('Amount column', mapping.amount_column, (column) =>
               set({ amount_column: column }),
             )}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="amount-sign">Money out is shown as</Label>
-            <NativeSelect
-              id="amount-sign"
-              value={mapping.money_out_is_negative ? 'negative' : 'positive'}
-              onChange={(event) =>
-                set({ money_out_is_negative: event.target.value === 'negative' })
-              }
-            >
-              <NativeSelectOption value="negative">
-                Negative (-25.00)
-              </NativeSelectOption>
-              <NativeSelectOption value="positive">
-                Positive (25.00), common on credit cards
-              </NativeSelectOption>
-            </NativeSelect>
-          </div>
-        </div>
+            <div className="space-y-2 pt-2">
+              <p className="text-sm text-muted-foreground">
+                If that column is empty on some rows, read the amount from this column
+                instead. Use it when your bank has a separate column per currency, such as
+                CAD$ and USD$. Those transactions are imported with the amount as written
+                and marked “Other currency”, so you can convert or keep each one later.
+              </p>
+              {columnSelect(
+                'Second amount column',
+                mapping.fallback_amount_column,
+                (column) => set({ fallback_amount_column: column }),
+                'No second column',
+              )}
+            </div>
+          </Question>
+
+          <Question
+            title="5. What does a purchase look like in this file?"
+            help="Find a row above where you spent money and look at its amount."
+          >
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Choice
+                name="amount-sign"
+                checked={mapping.money_out_is_negative}
+                onChoose={() => set({ money_out_is_negative: true })}
+                title="It has a minus sign"
+                example="A $25 purchase is -25.00. Usual for chequing and savings accounts."
+              />
+              <Choice
+                name="amount-sign"
+                checked={!mapping.money_out_is_negative}
+                onChoose={() => set({ money_out_is_negative: false })}
+                title="It has no minus sign"
+                example="A $25 purchase is 25.00, and payments or refunds are -25.00. Common on credit cards."
+              />
+            </div>
+          </Question>
+        </>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="money-out-column">Money out column</Label>
-            {columnSelect('money-out-column', mapping.money_out_column, (column) =>
-              set({ money_out_column: column }),
-            )}
+        <Question title="4. Which columns are they?">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <p className="text-sm">Money leaving the account</p>
+              {columnSelect('Money out column', mapping.money_out_column, (column) =>
+                set({ money_out_column: column }),
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-sm">Money arriving in the account</p>
+              {columnSelect('Money in column', mapping.money_in_column, (column) =>
+                set({ money_in_column: column }),
+              )}
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="money-in-column">Money in column</Label>
-            {columnSelect('money-in-column', mapping.money_in_column, (column) =>
-              set({ money_in_column: column }),
-            )}
-          </div>
-        </div>
+        </Question>
       )}
     </div>
   )

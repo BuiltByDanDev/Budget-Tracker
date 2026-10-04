@@ -19,6 +19,9 @@ class TransactionOut(BaseModel):
     id: int
     posted_on: date
     amount_cents: int
+    # The amount as read from the CSV, before any correction by the User.
+    imported_amount_cents: int
+    amount_unconverted: bool
     description: str
     kind: Kind
     account_id: int
@@ -34,6 +37,8 @@ class TransactionOut(BaseModel):
             id=transaction.id,
             posted_on=transaction.posted_on,
             amount_cents=transaction.amount_cents,
+            imported_amount_cents=transaction.imported_amount_cents,
+            amount_unconverted=transaction.amount_unconverted,
             description=transaction.description,
             kind=transaction.kind,
             account_id=transaction.account_id,
@@ -62,6 +67,10 @@ class Classification(BaseModel):
     rule_match_text: str | None = None
 
 
+class AmountIn(BaseModel):
+    amount_cents: int
+
+
 class ClassifyResult(BaseModel):
     transaction: TransactionOut
     # How many other Transactions the new Rule classified.
@@ -78,6 +87,7 @@ def list_transactions(
     kind: Kind | None = None,
     search: str | None = None,
     needs_review: bool = False,
+    amount_unconverted: bool = False,
     limit: int = Query(50, le=200),
     offset: int = 0,
     session: Session = Depends(get_session),
@@ -100,6 +110,8 @@ def list_transactions(
         # The Review Inbox: Expenses with no Category.
         conditions.append(Transaction.kind == Kind.EXPENSE)
         conditions.append(Transaction.category_id.is_(None))
+    if amount_unconverted:
+        conditions.append(Transaction.amount_unconverted)
     if search and search.strip():
         pattern = f"%{search.strip()}%"
         merchant_matches = select(Merchant.id).where(
@@ -229,3 +241,20 @@ def classify_transaction(
         transaction=TransactionOut.from_model(transaction),
         also_classified=also_classified,
     )
+
+
+@router.put("/{transaction_id}/amount", response_model=TransactionOut)
+def set_amount(
+    transaction_id: int,
+    body: AmountIn,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """The User settles an Unconverted Amount: a converted value, or the same one kept."""
+    transaction = session.get(Transaction, transaction_id)
+    if transaction is None or transaction.user_id != user.id:
+        raise HTTPException(404, "Transaction not found")
+    transaction.amount_cents = body.amount_cents
+    transaction.amount_unconverted = False
+    session.commit()
+    return TransactionOut.from_model(transaction)

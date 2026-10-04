@@ -1,6 +1,7 @@
 """Stores the rows of a CSV as Transactions, skipping ones already imported."""
 
 from collections import Counter
+from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -10,9 +11,17 @@ from app.importing.csv_parser import CsvMapping, ParsedRow, parse_csv
 from app.models import Account, Import, Kind, Transaction
 
 
+# What makes two rows "the same transaction": date, amount as imported, Description.
+RowKey = tuple[date, int, str]
+
+
+def _key(row: ParsedRow) -> RowKey:
+    return (row.posted_on, row.amount_cents, row.description)
+
+
 def _rows_already_stored(
     session: Session, account: Account, rows: list[ParsedRow]
-) -> Counter[ParsedRow]:
+) -> Counter[RowKey]:
     """How many Transactions matching each row the Account already has."""
     if not rows:
         return Counter()
@@ -21,7 +30,7 @@ def _rows_already_stored(
     stored = session.execute(
         select(
             Transaction.posted_on,
-            Transaction.amount_cents,
+            Transaction.imported_amount_cents,
             Transaction.description,
             func.count(),
         )
@@ -30,12 +39,14 @@ def _rows_already_stored(
             Transaction.posted_on.between(earliest, latest),
         )
         .group_by(
-            Transaction.posted_on, Transaction.amount_cents, Transaction.description
+            Transaction.posted_on,
+            Transaction.imported_amount_cents,
+            Transaction.description,
         )
     )
     return Counter(
         {
-            ParsedRow(posted_on, amount_cents, description): count
+            (posted_on, amount_cents, description): count
             for posted_on, amount_cents, description, count in stored
         }
     )
@@ -47,7 +58,7 @@ def import_csv(
     """Runs one Import. Raises CsvParseError, storing nothing, if any row is unreadable.
 
     A row is a duplicate when the Account already has a Transaction with the
-    same date, amount and Description. Two identical rows in one file are both
+    same date, amount (as it was imported) and Description. Two identical rows in one file are both
     kept: if the file has three of a row and the Account has one, two are added.
 
     Money out starts as an Expense and money in as Income; Rules then classify
@@ -59,8 +70,8 @@ def import_csv(
     remaining_duplicates = _rows_already_stored(session, account, rows)
     new_rows: list[ParsedRow] = []
     for row in rows:
-        if remaining_duplicates[row] > 0:
-            remaining_duplicates[row] -= 1
+        if remaining_duplicates[_key(row)] > 0:
+            remaining_duplicates[_key(row)] -= 1
         else:
             new_rows.append(row)
 
@@ -81,6 +92,8 @@ def import_csv(
             import_id=record.id,
             posted_on=row.posted_on,
             amount_cents=row.amount_cents,
+            imported_amount_cents=row.amount_cents,
+            amount_unconverted=row.unconverted,
             description=row.description,
             kind=Kind.EXPENSE if row.amount_cents < 0 else Kind.INCOME,
         )

@@ -7,6 +7,8 @@ export type CsvMapping = {
   description_columns: number[]
   amount_mode: 'single' | 'split'
   amount_column: number | null
+  // Used for a row whose amount column is empty (CAD$ / USD$ columns).
+  fallback_amount_column: number | null
   money_out_is_negative: boolean
   money_out_column: number | null
   money_in_column: number | null
@@ -21,6 +23,15 @@ export type Account = {
 export type CsvPreview = {
   rows: string[][]
   total_rows: number
+  // With a mapping: how the first rows would be read, or which rows cannot be.
+  transactions: {
+    posted_on: string
+    description: string
+    amount_cents: number
+    unconverted: boolean
+  }[]
+  row_errors: RowError[]
+  error_count: number
 }
 
 export type ImportSummary = {
@@ -28,6 +39,8 @@ export type ImportSummary = {
   filename: string
   new_count: number
   skipped_count: number
+  // How many of the new Transactions are Unconverted Amounts.
+  unconverted_count: number
 }
 
 export type Kind = 'expense' | 'income' | 'transfer'
@@ -42,6 +55,10 @@ export type Transaction = {
   id: number
   posted_on: string
   amount_cents: number
+  // The amount as read from the CSV, before any correction by the User.
+  imported_amount_cents: number
+  // Read from the CSV's other-currency column and not yet converted or kept.
+  amount_unconverted: boolean
   description: string
   kind: Kind
   account_id: number
@@ -69,6 +86,7 @@ export type TransactionFilters = {
   kind?: Kind
   search?: string
   needs_review?: boolean
+  amount_unconverted?: boolean
   limit?: number
   offset?: number
 }
@@ -170,9 +188,10 @@ function json(method: string, body: unknown): RequestInit {
   }
 }
 
-function upload(file: File): RequestInit {
+function upload(file: File, fields: Record<string, string> = {}): RequestInit {
   const form = new FormData()
   form.append('file', file)
+  for (const [name, value] of Object.entries(fields)) form.append(name, value)
   return { method: 'POST', body: form }
 }
 
@@ -182,7 +201,11 @@ export const api = {
     request<Account>('/accounts', json('POST', { name })),
   setCsvMapping: (accountId: number, mapping: CsvMapping) =>
     request<Account>(`/accounts/${accountId}/csv-mapping`, json('PUT', mapping)),
-  previewCsv: (file: File) => request<CsvPreview>('/csv-preview', upload(file)),
+  previewCsv: (file: File, mapping?: CsvMapping) =>
+    request<CsvPreview>(
+      '/csv-preview',
+      upload(file, mapping ? { mapping: JSON.stringify(mapping) } : {}),
+    ),
   importCsv: (accountId: number, file: File) =>
     request<ImportSummary>(`/accounts/${accountId}/imports`, upload(file)),
   listTransactions: (filters: TransactionFilters) =>
@@ -191,6 +214,11 @@ export const api = {
     request<ClassifyResult>(
       `/transactions/${transactionId}/classification`,
       json('PUT', classification),
+    ),
+  setAmount: (transactionId: number, amountCents: number) =>
+    request<Transaction>(
+      `/transactions/${transactionId}/amount`,
+      json('PUT', { amount_cents: amountCents }),
     ),
   listCategories: () => request<Category[]>('/categories'),
   listMerchants: () => request<Merchant[]>('/merchants'),

@@ -156,6 +156,19 @@ function TransactionsPage() {
             ))}
           </NativeSelect>
         </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="filter-amount">Amount</Label>
+          <NativeSelect
+            id="filter-amount"
+            value={filters.amount_unconverted ? 'unconverted' : ''}
+            onChange={(event) =>
+              setFilter({ amount_unconverted: event.target.value ? true : undefined })
+            }
+          >
+            <NativeSelectOption value="">All</NativeSelectOption>
+            <NativeSelectOption value="unconverted">Other currency, not settled</NativeSelectOption>
+          </NativeSelect>
+        </div>
         {filtered && (
           <Button
             variant="ghost"

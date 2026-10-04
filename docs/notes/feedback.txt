@@ -1,0 +1,4 @@
+- the import csv process is confusing. no idea what description columns does.
+- Amount's are in dropdown is hard to understand what its doing
+- I noticed in my first CSV there are 2 columns for different correncies (CAD and USD) and realize if we only look at one, we will run into issues if i spend USD. it should look for one and if empty, look for the other.
+- money out shown as, also misleading. don't know what its trying to do.

@@ -48,6 +48,10 @@ _Avoid_: Payment, internal movement
 An Expense with money coming in. It reduces Spending in its Category.
 _Avoid_: Return, reversal, credit
 
+**Unconverted Amount**:
+A Transaction whose amount was read from the CSV's other-currency column and that the User has not yet converted or chosen to keep. It counts at the amount as written until then.
+_Avoid_: Flagged transaction, foreign transaction, USD transaction
+
 **Description**:
 The text the bank wrote for a Transaction, kept exactly as exported.
 _Avoid_: Memo, payee, name
