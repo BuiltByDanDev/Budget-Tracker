@@ -38,6 +38,20 @@ def best_rule(rules: Iterable[Rule], description: str, amount_cents: int) -> Rul
     )
 
 
+def starting_kind(amount_cents: int) -> Kind:
+    """Before anything classifies it, money out is an Expense and money in is Income."""
+    return Kind.EXPENSE if amount_cents < 0 else Kind.INCOME
+
+
+def _classification(transaction: Transaction) -> tuple:
+    return (
+        transaction.kind,
+        transaction.category_id,
+        transaction.importance,
+        transaction.merchant_id,
+    )
+
+
 def classify(
     transaction: Transaction,
     kind: Kind,
@@ -53,29 +67,39 @@ def classify(
 
 
 def apply_rules(session: Session, user_id: int, transactions: Iterable[Transaction]) -> int:
-    """Classifies each Transaction by its best Rule. Returns how many matched one."""
+    """Puts each Transaction in step with the Rules. Returns how many it changed.
+
+    A Transaction takes the classification of its best Rule. One that no Rule
+    matches goes back to how an Import leaves it: an Expense with no Category
+    for money out, Income for money in.
+    """
     rules = session.scalars(select(Rule).where(Rule.user_id == user_id)).all()
-    matched = 0
+    changed = 0
     for transaction in transactions:
+        before = _classification(transaction)
         rule = best_rule(rules, transaction.description, transaction.amount_cents)
         if rule is not None:
             classify(
                 transaction, rule.kind, rule.category_id, rule.importance, rule.merchant_id
             )
-            matched += 1
-    return matched
+        else:
+            classify(transaction, starting_kind(transaction.amount_cents), None, None, None)
+        transaction.rule_id = rule.id if rule is not None else None
+        if _classification(transaction) != before:
+            changed += 1
+    return changed
 
 
-def apply_rules_to_unclassified(session: Session, user_id: int) -> int:
-    """Runs the Rules over stored Transactions that nothing has classified yet.
+def reapply_rules(session: Session, user_id: int) -> int:
+    """Runs the Rules over every stored Transaction the User has not set by hand.
 
-    A Transaction the User set by hand, or that already has a Category, is left alone.
+    Called whenever a Rule is added, changed or deleted, so that those
+    Transactions always reflect the Rules as they are now.
     """
-    unclassified = session.scalars(
+    not_set_by_hand = session.scalars(
         select(Transaction).where(
             Transaction.user_id == user_id,
             Transaction.set_by_hand.is_(False),
-            Transaction.category_id.is_(None),
         )
     ).all()
-    return apply_rules(session, user_id, unclassified)
+    return apply_rules(session, user_id, not_set_by_hand)

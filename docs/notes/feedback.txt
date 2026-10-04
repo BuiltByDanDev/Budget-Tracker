@@ -1,4 +1,6 @@
-- the import csv process is confusing. no idea what description columns does.
-- Amount's are in dropdown is hard to understand what its doing
-- I noticed in my first CSV there are 2 columns for different correncies (CAD and USD) and realize if we only look at one, we will run into issues if i spend USD. it should look for one and if empty, look for the other.
-- money out shown as, also misleading. don't know what its trying to do.
+- When setting rules in flagged transactions, I should be able to also combine the exact amount + transaction descriptor as a rules
+- i want to be able to view rules, the transactions they're applied to (can be a subset with the option to expand) and allow editing and saving
+- I want the ability to filter by incoming/outgoing money
+- I want to be split up my income from my employer and the income from other transfers coming in. It misrepresents my actual income.
+- When Assigning my employment income, there will also be an issue where my paycheques fall into the next month. I want to be able to shift them into the correct month as an option for users with the same issue as me (paid twice a month on 1st and 16th but holidays and weekends push these dates before/after the actual month)
+- I need to solve for tracking gas purchases, this isn't easy retroactively, but being able to go back and look at transactions, assign the rule we spoke about earlier with desc + amount (maybe a range could be used as an option as well)

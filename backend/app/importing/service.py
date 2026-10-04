@@ -6,9 +6,9 @@ from datetime import date
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.classifying.rules import apply_rules
+from app.classifying.rules import apply_rules, starting_kind
 from app.importing.csv_parser import CsvMapping, ParsedRow, parse_csv
-from app.models import Account, Import, Kind, Transaction
+from app.models import Account, Import, Transaction
 
 
 # What makes two rows "the same transaction": date, amount as imported, Description.
@@ -95,7 +95,7 @@ def import_csv(
             imported_amount_cents=row.amount_cents,
             amount_unconverted=row.unconverted,
             description=row.description,
-            kind=Kind.EXPENSE if row.amount_cents < 0 else Kind.INCOME,
+            kind=starting_kind(row.amount_cents),
         )
         for row in new_rows
     ]

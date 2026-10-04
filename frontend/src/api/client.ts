@@ -84,6 +84,8 @@ export type TransactionFilters = {
   category_id?: number
   importance?: Importance
   kind?: Kind
+  // Only Transactions this Rule classifies.
+  rule_id?: number
   search?: string
   needs_review?: boolean
   amount_unconverted?: boolean
@@ -118,6 +120,34 @@ export type ClassifyResult = {
   transaction: Transaction
   also_classified: number
 }
+
+export type Rule = {
+  id: number
+  match_text: string
+  // Both null means any amount. Signed: money out is negative.
+  amount_min_cents: number | null
+  amount_max_cents: number | null
+  kind: Kind
+  category_id: number | null
+  category_name: string | null
+  importance: Importance | null
+  merchant_name: string | null
+  // How many Transactions this Rule currently classifies.
+  transaction_count: number
+}
+
+export type RuleChanges = {
+  match_text: string
+  amount_min_cents: number | null
+  amount_max_cents: number | null
+  kind: Kind
+  category_id: number | null
+  importance: Importance | null
+  merchant_name: string | null
+}
+
+// changed: how many Transactions changed when the Rules were run again.
+export type RuleSaved = { rule: Rule; changed: number }
 
 export type MonthFigures = {
   // "2026-03"
@@ -228,6 +258,11 @@ export const api = {
       `/transactions/${transactionId}/amount`,
       json('PUT', { amount_cents: amountCents }),
     ),
+  listRules: () => request<Rule[]>('/rules'),
+  changeRule: (ruleId: number, changes: RuleChanges) =>
+    request<RuleSaved>(`/rules/${ruleId}`, json('PUT', changes)),
+  deleteRule: (ruleId: number) =>
+    request<{ changed: number }>(`/rules/${ruleId}`, { method: 'DELETE' }),
   listCategories: () => request<Category[]>('/categories'),
   listMerchants: () => request<Merchant[]>('/merchants'),
   createCategory: (name: string) =>

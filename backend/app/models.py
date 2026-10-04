@@ -94,6 +94,9 @@ class Rule(Base):
     importance: Mapped[Importance | None] = mapped_column(_enum_column(Importance))
     merchant_id: Mapped[int | None] = mapped_column(ForeignKey("merchants.id"))
 
+    category: Mapped[Category | None] = relationship()
+    merchant: Mapped[Merchant | None] = relationship()
+
 
 class Import(Base):
     __tablename__ = "imports"
@@ -133,6 +136,11 @@ class Transaction(Base):
     # True once the User has classified this Transaction themselves.
     # Rules never change a Transaction that was set by hand.
     set_by_hand: Mapped[bool] = mapped_column(default=False)
+    # The Rule that classified this Transaction. Empty when it was set by hand
+    # or no Rule matches. Deleting the Rule empties it (SET NULL).
+    rule_id: Mapped[int | None] = mapped_column(
+        ForeignKey("rules.id", ondelete="SET NULL")
+    )
 
     account: Mapped[Account] = relationship()
     category: Mapped[Category | None] = relationship()

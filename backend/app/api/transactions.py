@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.classifying.rules import apply_rules_to_unclassified, classify
+from app.classifying.rules import classify, reapply_rules
 from app.db import get_session
 from app.models import Category, Importance, Kind, Merchant, Rule, Transaction, User
 from app.users import get_current_user
@@ -78,7 +78,7 @@ class AmountIn(BaseModel):
 
 class ClassifyResult(BaseModel):
     transaction: TransactionOut
-    # How many other Transactions the new Rule classified.
+    # How many other Transactions changed when the Rules were run again.
     also_classified: int
 
 
@@ -90,6 +90,7 @@ def list_transactions(
     category_id: int | None = None,
     importance: Importance | None = None,
     kind: Kind | None = None,
+    rule_id: int | None = None,
     search: str | None = None,
     needs_review: bool = False,
     amount_unconverted: bool = False,
@@ -111,6 +112,8 @@ def list_transactions(
         conditions.append(Transaction.importance == importance)
     if kind:
         conditions.append(Transaction.kind == kind)
+    if rule_id:
+        conditions.append(Transaction.rule_id == rule_id)
     if needs_review:
         # The Review Inbox: Expenses with no Category.
         conditions.append(Transaction.kind == Kind.EXPENSE)
@@ -172,7 +175,7 @@ def list_transactions(
     )
 
 
-def _merchant_id(session: Session, user: User, name: str | None) -> int | None:
+def merchant_id_for(session: Session, user: User, name: str | None) -> int | None:
     """Finds the Merchant with this name, ignoring case, or creates it."""
     if not name or not name.strip():
         return None
@@ -232,9 +235,10 @@ def classify_transaction(
                 422, "The rule's amount range must include this transaction's amount"
             )
 
-    merchant_id = _merchant_id(session, user, body.merchant_name)
+    merchant_id = merchant_id_for(session, user, body.merchant_name)
     classify(transaction, body.kind, body.category_id, body.importance, merchant_id)
     transaction.set_by_hand = True
+    transaction.rule_id = None
 
     also_classified = 0
     if match_text:
@@ -263,7 +267,7 @@ def classify_transaction(
         rule.importance = transaction.importance
         rule.merchant_id = transaction.merchant_id
         session.flush()
-        also_classified = apply_rules_to_unclassified(session, user.id)
+        also_classified = reapply_rules(session, user.id)
 
     session.commit()
     return ClassifyResult(

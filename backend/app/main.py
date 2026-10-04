@@ -2,7 +2,7 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.api import accounts, categories, imports, reports, transactions
+from app.api import accounts, categories, imports, reports, rules, transactions
 from app.config import settings
 from app.db import get_session
 
@@ -11,6 +11,7 @@ app.include_router(accounts.router)
 app.include_router(categories.router)
 app.include_router(imports.router)
 app.include_router(reports.router)
+app.include_router(rules.router)
 app.include_router(transactions.router)
 
 

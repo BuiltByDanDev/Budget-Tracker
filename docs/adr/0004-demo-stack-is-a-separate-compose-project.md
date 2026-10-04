@@ -1,0 +1,3 @@
+# The demo stack is a separate Compose project, not a demo User
+
+Mock data for trying features lives in a second copy of the whole stack, started from the same `docker-compose.yml` with `.env.demo` (its own project name, port 8089 and database volume). A demo User inside the real database, with a switch in the header, was ruled out even though it needs no extra containers: one missed `user_id` filter or a bug in the switch would mix mock rows with Daniel's real transactions, and new migrations could not be tried on mock data first. The seed script deletes every row before loading, so it only runs when `DEMO=true`, which only `.env.demo` sets.

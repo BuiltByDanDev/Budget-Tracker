@@ -1,12 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import {
-  api,
-  type ClassifyResult,
-  type Importance,
-  type Kind,
-  type Transaction,
-} from '@/api/client'
+import { api, type ClassifyResult, type Transaction } from '@/api/client'
+import { ClassificationFields } from '@/components/ClassificationFields'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -15,15 +10,9 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '@/components/ui/native-select'
+import { type ClassificationValue, isComplete } from '@/lib/classification'
 import { formatCents, parseDollars } from '@/lib/format'
-import {
-  IMPORTANCE_HINTS,
-  IMPORTANCE_LABELS,
-  IMPORTANCES,
-  KIND_LABELS,
-  KINDS,
-  suggestMatchText,
-} from '@/lib/labels'
+import { suggestMatchText } from '@/lib/labels'
 
 // Which amounts a new Rule applies to.
 type RuleAmount = 'any' | 'exact' | 'between'
@@ -37,13 +26,12 @@ type Props = {
 /** Lets the User classify one Transaction and optionally save a Rule from it. */
 export function ClassifyForm({ transaction, onSaved, onCancel }: Props) {
   const queryClient = useQueryClient()
-  const categories = useQuery({ queryKey: ['categories'], queryFn: api.listCategories })
-  const merchants = useQuery({ queryKey: ['merchants'], queryFn: api.listMerchants })
-
-  const [kind, setKind] = useState<Kind>(transaction.kind)
-  const [categoryId, setCategoryId] = useState<number | null>(transaction.category_id)
-  const [importance, setImportance] = useState<Importance | null>(transaction.importance)
-  const [merchantName, setMerchantName] = useState(transaction.merchant_name ?? '')
+  const [fields, setFields] = useState<ClassificationValue>({
+    kind: transaction.kind,
+    categoryId: transaction.category_id,
+    importance: transaction.importance,
+    merchantName: transaction.merchant_name ?? '',
+  })
   const [makeRule, setMakeRule] = useState(false)
   const [matchText, setMatchText] = useState(() =>
     suggestMatchText(transaction.description),
@@ -69,10 +57,10 @@ export function ClassifyForm({ transaction, onSaved, onCancel }: Props) {
   const save = useMutation({
     mutationFn: () =>
       api.classify(transaction.id, {
-        kind,
-        category_id: kind === 'expense' ? categoryId : null,
-        importance: kind === 'expense' ? importance : null,
-        merchant_name: merchantName.trim() || null,
+        kind: fields.kind,
+        category_id: fields.kind === 'expense' ? fields.categoryId : null,
+        importance: fields.kind === 'expense' ? fields.importance : null,
+        merchant_name: fields.merchantName.trim() || null,
         rule_match_text: makeRule ? matchText : null,
         rule_amount_min_cents: amountRange?.min ?? null,
         rule_amount_max_cents: amountRange?.max ?? null,
@@ -83,8 +71,8 @@ export function ClassifyForm({ transaction, onSaved, onCancel }: Props) {
     },
   })
 
-  const classified = kind !== 'expense' || (categoryId !== null && importance !== null)
-  const complete = classified && (!makeRule || ruleAmount === 'any' || rangeIsValid)
+  const complete =
+    isComplete(fields) && (!makeRule || ruleAmount === 'any' || rangeIsValid)
   const id = (name: string) => `${name}-${transaction.id}`
 
   return (
@@ -95,94 +83,11 @@ export function ClassifyForm({ transaction, onSaved, onCancel }: Props) {
         save.mutate()
       }}
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-1.5">
-          <Label htmlFor={id('kind')}>Kind</Label>
-          <NativeSelect
-            id={id('kind')}
-            className="w-full"
-            value={kind}
-            onChange={(event) => setKind(event.target.value as Kind)}
-          >
-            {KINDS.map((value) => (
-              <NativeSelectOption key={value} value={value}>
-                {KIND_LABELS[value]}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </div>
-
-        {kind === 'expense' && (
-          <>
-            <div className="space-y-1.5">
-              <Label htmlFor={id('category')}>Category</Label>
-              <NativeSelect
-                id={id('category')}
-                className="w-full"
-                value={categoryId ?? ''}
-                onChange={(event) =>
-                  setCategoryId(event.target.value ? Number(event.target.value) : null)
-                }
-              >
-                <NativeSelectOption value="">Choose…</NativeSelectOption>
-                {categories.data
-                  ?.filter((category) => !category.retired || category.id === categoryId)
-                  .map((category) => (
-                    <NativeSelectOption key={category.id} value={category.id}>
-                      {category.name}
-                    </NativeSelectOption>
-                  ))}
-              </NativeSelect>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor={id('importance')}>Importance</Label>
-              <NativeSelect
-                id={id('importance')}
-                className="w-full"
-                value={importance ?? ''}
-                onChange={(event) =>
-                  setImportance((event.target.value || null) as Importance | null)
-                }
-              >
-                <NativeSelectOption value="">Choose…</NativeSelectOption>
-                {IMPORTANCES.map((value) => (
-                  <NativeSelectOption key={value} value={value}>
-                    {IMPORTANCE_LABELS[value]}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-              {importance && (
-                <p className="text-xs text-muted-foreground">
-                  {IMPORTANCE_HINTS[importance]}
-                </p>
-              )}
-            </div>
-          </>
-        )}
-
-        <div className="space-y-1.5">
-          <Label htmlFor={id('merchant')}>Merchant (optional)</Label>
-          <Input
-            id={id('merchant')}
-            list={id('merchants')}
-            placeholder="e.g. Amazon"
-            value={merchantName}
-            onChange={(event) => setMerchantName(event.target.value)}
-          />
-          <datalist id={id('merchants')}>
-            {merchants.data?.map((merchant) => (
-              <option key={merchant.id} value={merchant.name} />
-            ))}
-          </datalist>
-        </div>
-      </div>
-
-      {kind === 'transfer' && (
-        <p className="text-sm text-muted-foreground">
-          A transfer is money moved between your own accounts, such as a credit card
-          payment. It is left out of spending and income.
-        </p>
-      )}
+      <ClassificationFields
+        idSuffix={transaction.id}
+        value={fields}
+        onChange={setFields}
+      />
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Label className="flex items-center gap-2 font-normal">

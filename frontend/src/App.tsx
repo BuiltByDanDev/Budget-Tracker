@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import DashboardPage from '@/pages/DashboardPage'
 import ImportPage from '@/pages/ImportPage'
 import ReviewPage from '@/pages/ReviewPage'
+import RulesPage from '@/pages/RulesPage'
 import SettingsPage from '@/pages/SettingsPage'
 import TrendsPage from '@/pages/TrendsPage'
 import TransactionsPage from '@/pages/TransactionsPage'
@@ -15,6 +16,7 @@ const NAV = [
   { to: '/trends', label: 'Trends' },
   { to: '/transactions', label: 'Transactions' },
   { to: '/review', label: 'Review' },
+  { to: '/rules', label: 'Rules' },
   { to: '/import', label: 'Import' },
   { to: '/settings', label: 'Settings' },
 ]
@@ -64,6 +66,7 @@ function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/review" element={<ReviewPage />} />
+          <Route path="/rules" element={<RulesPage />} />
           <Route path="/import" element={<ImportPage />} />
         </Routes>
       </main>

@@ -15,7 +15,7 @@ import random
 import sys
 from datetime import date, timedelta
 
-from app.classifying.rules import apply_rules_to_unclassified
+from app.classifying.rules import reapply_rules
 from app.config import settings
 from app.db import SessionLocal
 from app.importing.service import import_csv
@@ -197,7 +197,7 @@ def main() -> None:
                 )
             )
         session.flush()
-        classified = apply_rules_to_unclassified(session, user.id)
+        classified = reapply_rules(session, user.id)
         session.commit()
 
     total = len(chequing_rows) + len(card_rows)
