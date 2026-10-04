@@ -13,6 +13,7 @@ Read `CONTEXT.md` before naming anything: it is the glossary, and code, UI text 
 ## Commands
 
 - Start: `docker compose up -d`, then http://localhost:8088 (8080 is taken by another container on Daniel's machine).
+- Demo stack (mock data, own database, http://localhost:8089): `docker compose --env-file .env.demo up -d`, then `docker compose --env-file .env.demo exec api python -m app.demo_data` to load or reset the mock data. Both stacks mount the same source.
 - Backend tests: `docker compose exec api pytest`. They run against the dev Postgres inside a transaction that is rolled back, so they need the stack up and leave nothing behind.
 - Frontend: `npm run build` and `npm run lint` in `frontend/`.
 - Model change: `docker compose exec api alembic revision --autogenerate -m "..."`, then edit the generated file if existing rows need backfilling, then `alembic upgrade head`.
@@ -44,4 +45,4 @@ There is no browser tool. Headless Chrome works for screenshots but never exits 
 
 `perl -e 'alarm 14; exec @ARGV' "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --window-size=1280,1600 --virtual-time-budget=5000 --screenshot=out.png http://localhost:8088/dashboard`
 
-If you load demo data to look at a page, put it in its own Account and delete it afterwards; the database holds Daniel's real transactions.
+Look at pages on the demo stack (port 8089), and add cases to `backend/app/demo_data.py` when a feature needs data it lacks. Never load mock data into the stack on 8088; its database holds Daniel's real transactions.

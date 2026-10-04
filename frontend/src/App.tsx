@@ -25,12 +25,14 @@ function App() {
     queryFn: () => api.listTransactions({ needs_review: true, limit: 1 }),
   })
   const toReview = reviewInbox.data?.total ?? 0
+  const mode = useQuery({ queryKey: ['mode'], queryFn: api.mode, staleTime: Infinity })
 
   return (
     <div className="min-h-svh bg-background text-foreground">
       <header className="border-b">
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
           <span className="font-semibold">Budgeting</span>
+          {mode.data?.demo && <Badge variant="outline">Demo data</Badge>}
           <nav className="flex gap-1">
             {NAV.map((item) => (
               <NavLink

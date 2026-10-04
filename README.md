@@ -30,6 +30,22 @@ docker compose logs -f api   # watch the API's output
 
 To use a different port or database password, copy `.env.example` to `.env` and edit it.
 
+## Trying things on mock data
+
+The demo stack is a second copy of the app with its own database, so you can try a feature without touching your real transactions. It runs next to the real one, on port 8089.
+
+```sh
+docker compose --env-file .env.demo up -d                             # start it
+docker compose --env-file .env.demo exec api python -m app.demo_data  # load mock data, or reset it
+docker compose --env-file .env.demo down                              # stop it; add -v to delete its database
+```
+
+Then open <http://localhost:8089>. The header shows a "Demo data" badge so you can tell the two apart.
+
+`.env.demo` gives the stack a different project name (`budgeting-demo`). Docker Compose names containers and volumes after the project, which is what keeps the two databases separate. Both stacks read the same source folders, so a code change shows up in both.
+
+The mock data covers the last six months for a chequing account and a credit card. `app/demo_data.py` wipes the database before loading, and refuses to run anywhere except the demo stack.
+
 ## How it is put together
 
 ```

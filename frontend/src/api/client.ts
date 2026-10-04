@@ -141,6 +141,9 @@ export type DataRange = {
   last_month: string | null
 }
 
+// demo is true in the demo stack, whose database holds mock data.
+export type Mode = { demo: boolean }
+
 export type Settings = { spending_limit_cents: number | null }
 
 export type CategoryChanges = {
@@ -239,4 +242,5 @@ export const api = {
       `/reports/monthly?${queryString({ first_month: firstMonth, last_month: lastMonth })}`,
     ),
   dataRange: () => request<DataRange>('/reports/data-range'),
+  mode: () => request<Mode>('/mode'),
 }

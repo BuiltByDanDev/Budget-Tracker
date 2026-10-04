@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api import accounts, categories, imports, reports, transactions
+from app.config import settings
 from app.db import get_session
 
 app = FastAPI(title="Budgeting API")
@@ -17,3 +18,9 @@ app.include_router(transactions.router)
 def health(session: Session = Depends(get_session)) -> dict[str, str]:
     session.execute(text("SELECT 1"))
     return {"status": "ok", "database": "ok"}
+
+
+@app.get("/api/mode")
+def mode() -> dict[str, bool]:
+    """Whether this is the demo stack, so the UI can say so."""
+    return {"demo": settings.demo}
