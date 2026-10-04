@@ -1,6 +1,6 @@
-- When setting rules in flagged transactions, I should be able to also combine the exact amount + transaction descriptor as a rules
-- i want to be able to view rules, the transactions they're applied to (can be a subset with the option to expand) and allow editing and saving
-- I want the ability to filter by incoming/outgoing money
-- I want to be split up my income from my employer and the income from other transfers coming in. It misrepresents my actual income.
-- When Assigning my employment income, there will also be an issue where my paycheques fall into the next month. I want to be able to shift them into the correct month as an option for users with the same issue as me (paid twice a month on 1st and 16th but holidays and weekends push these dates before/after the actual month)
-- I need to solve for tracking gas purchases, this isn't easy retroactively, but being able to go back and look at transactions, assign the rule we spoke about earlier with desc + amount (maybe a range could be used as an option as well)
+- [done 2026-10-04: Rule amount: exact or between, in the classify form] When setting rules in flagged transactions, I should be able to also combine the exact amount + transaction descriptor as a rules
+- [done 2026-10-04: Rules page] i want to be able to view rules, the transactions they're applied to (can be a subset with the option to expand) and allow editing and saving
+- [done 2026-10-04: Money filter on the Transactions page] I want the ability to filter by incoming/outgoing money
+- [done 2026-10-04: Kind split into Pay and Other Income; Savings Rate uses Pay] I want to be split up my income from my employer and the income from other transfers coming in. It misrepresents my actual income.
+- [done 2026-10-04: Pay days in Settings] When Assigning my employment income, there will also be an issue where my paycheques fall into the next month. I want to be able to shift them into the correct month as an option for users with the same issue as me (paid twice a month on 1st and 16th but holidays and weekends push these dates before/after the actual month)
+- [done 2026-10-04: covered by the amount range Rule and Rules taking over; by-hand ones are re-classified by hand] I need to solve for tracking gas purchases, this isn't easy retroactively, but being able to go back and look at transactions, assign the rule we spoke about earlier with desc + amount (maybe a range could be used as an option as well)
