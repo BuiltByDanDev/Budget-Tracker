@@ -84,6 +84,8 @@ export type TransactionFilters = {
   category_id?: number
   importance?: Importance
   kind?: Kind
+  // By the sign of the amount, whatever the Kind.
+  money?: 'in' | 'out'
   // Only Transactions this Rule classifies.
   rule_id?: number
   search?: string

@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -91,6 +92,8 @@ def list_transactions(
     importance: Importance | None = None,
     kind: Kind | None = None,
     rule_id: int | None = None,
+    # "in" for money in, "out" for money out, by the sign of the amount.
+    money: Literal["in", "out"] | None = None,
     search: str | None = None,
     needs_review: bool = False,
     amount_unconverted: bool = False,
@@ -114,6 +117,10 @@ def list_transactions(
         conditions.append(Transaction.kind == kind)
     if rule_id:
         conditions.append(Transaction.rule_id == rule_id)
+    if money == "in":
+        conditions.append(Transaction.amount_cents > 0)
+    if money == "out":
+        conditions.append(Transaction.amount_cents < 0)
     if needs_review:
         # The Review Inbox: Expenses with no Category.
         conditions.append(Transaction.kind == Kind.EXPENSE)

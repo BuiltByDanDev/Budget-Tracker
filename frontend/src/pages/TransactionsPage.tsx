@@ -121,6 +121,22 @@ function TransactionsPage() {
           </NativeSelect>
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="filter-money">Money</Label>
+          <NativeSelect
+            id="filter-money"
+            value={filters.money ?? ''}
+            onChange={(event) =>
+              setFilter({
+                money: (event.target.value || undefined) as TransactionFilters['money'],
+              })
+            }
+          >
+            <NativeSelectOption value="">In and out</NativeSelectOption>
+            <NativeSelectOption value="in">Money in</NativeSelectOption>
+            <NativeSelectOption value="out">Money out</NativeSelectOption>
+          </NativeSelect>
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="filter-category">Category</Label>
           <NativeSelect
             id="filter-category"

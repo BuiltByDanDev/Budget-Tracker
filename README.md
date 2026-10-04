@@ -9,7 +9,7 @@ A personal app for seeing where your money goes each month. You export CSV files
 - **Dashboard** for one month: spending against your spending limit, income, savings rate, and spending by category (against each category's target) and by importance.
 - **Trends** across months: spending, savings rate, importance and a category-by-month table.
 - **Rules**: every rule, the transactions it applies to, and a form to change or delete it. Transactions you have not classified by hand follow the rules, so changing or deleting a rule updates them, and a transaction no rule matches any more goes back to Review. When two rules match, one with an amount wins, then the one with the longest text.
-- **Transactions**: every transaction, with filters and totals. Click a row to change it.
+- **Transactions**: every transaction, with filters (including money in or money out) and totals. Click a row to change it.
 - **Settings**: your monthly spending limit, and your categories and their monthly targets.
 
 Money moved between your own accounts (a credit card payment, a transfer to savings) is marked as a transfer and left out of spending and income.

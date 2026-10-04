@@ -439,3 +439,20 @@ def test_filters_narrow_the_list(client, session, user, account):
     assert april["spending_cents"] == 3036
     assert income["total"] == 1
     assert income["income_cents"] == 2500
+
+
+def test_filtering_by_money_in_or_money_out(client, account):
+    upload(client, account, MARCH)
+
+    money_in = client.get("/api/transactions", params={"money": "in"}).json()
+    money_out = client.get("/api/transactions", params={"money": "out"}).json()
+    sideways = client.get("/api/transactions", params={"money": "sideways"})
+
+    # Only the 25.00 refund, which arrives as Income.
+    assert money_in["total"] == 1
+    assert money_in["income_cents"] == 2500
+    assert money_in["spending_cents"] == 0
+    assert money_out["total"] == 4
+    # 16.99 + 42.10 + 9.99 + 300.00
+    assert money_out["spending_cents"] == 36908
+    assert sideways.status_code == 422
