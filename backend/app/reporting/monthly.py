@@ -1,4 +1,4 @@
-"""Spending, Income and Savings Rate per Month."""
+"""Spending, Pay, Other Income and Savings Rate per Month."""
 
 from dataclasses import dataclass, field
 from datetime import date
@@ -14,17 +14,22 @@ class MonthFigures:
     # The first day of the Month.
     month: date
     spending_cents: int = 0
-    income_cents: int = 0
+    pay_cents: int = 0
+    other_income_cents: int = 0
     # Keyed by Category id; None holds Expenses still in the Review Inbox.
     spending_by_category: dict[int | None, int] = field(default_factory=dict)
     spending_by_importance: dict[Importance | None, int] = field(default_factory=dict)
 
     @property
     def savings_rate(self) -> float | None:
-        """The share of Income left after Spending. None in a Month with no Income."""
-        if self.income_cents <= 0:
+        """The share of Pay left after Spending. None in a Month with no Pay.
+
+        Other Income is left out, so money in that is not earnings (an
+        e-transfer from a friend) cannot make a Month look better than it was.
+        """
+        if self.pay_cents <= 0:
             return None
-        return (self.income_cents - self.spending_cents) / self.income_cents
+        return (self.pay_cents - self.spending_cents) / self.pay_cents
 
 
 def next_month(month: date) -> date:
@@ -66,8 +71,11 @@ def monthly_figures(
     )
     for started, kind, category_id, importance, amount_cents in rows:
         month_figures = figures[started.date()]
-        if kind == Kind.INCOME:
-            month_figures.income_cents += amount_cents
+        if kind == Kind.PAY:
+            month_figures.pay_cents += amount_cents
+            continue
+        if kind == Kind.OTHER_INCOME:
+            month_figures.other_income_cents += amount_cents
             continue
         spent = -amount_cents
         month_figures.spending_cents += spent

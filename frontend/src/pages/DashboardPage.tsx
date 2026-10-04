@@ -133,10 +133,15 @@ function DashboardPage() {
         <div className="grid gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-normal text-muted-foreground">Income</CardTitle>
+              <CardTitle className="text-sm font-normal text-muted-foreground">Pay</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-semibold">{formatDollars(figures.income_cents)}</p>
+              <p className="text-2xl font-semibold">{formatDollars(figures.pay_cents)}</p>
+              <p className="text-sm text-muted-foreground">
+                {figures.other_income_cents === 0
+                  ? 'No other income'
+                  : `${formatCents(figures.other_income_cents)} other income`}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -151,8 +156,8 @@ function DashboardPage() {
               </p>
               <p className="text-sm text-muted-foreground">
                 {figures.savings_rate === null
-                  ? 'No income this month'
-                  : `${formatCents(figures.income_cents - figures.spending_cents)} left after spending`}
+                  ? 'No pay this month'
+                  : `${formatCents(figures.pay_cents - figures.spending_cents)} of pay left after spending`}
               </p>
             </CardContent>
           </Card>

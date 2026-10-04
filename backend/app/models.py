@@ -13,7 +13,9 @@ class Base(DeclarativeBase):
 
 class Kind(enum.StrEnum):
     EXPENSE = "expense"
-    INCOME = "income"
+    # Income is Pay and Other Income together.
+    PAY = "pay"
+    OTHER_INCOME = "other_income"
     TRANSFER = "transfer"
 
 

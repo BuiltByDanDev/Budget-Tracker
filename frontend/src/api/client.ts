@@ -43,7 +43,8 @@ export type ImportSummary = {
   unconverted_count: number
 }
 
-export type Kind = 'expense' | 'income' | 'transfer'
+// Income is Pay and Other Income together.
+export type Kind = 'expense' | 'pay' | 'other_income' | 'transfer'
 
 export type Importance =
   | 'essential'
@@ -74,7 +75,8 @@ export type TransactionPage = {
   total: number
   // Totals over every Transaction matching the filters, not just this page.
   spending_cents: number
-  income_cents: number
+  pay_cents: number
+  other_income_cents: number
 }
 
 export type TransactionFilters = {
@@ -155,8 +157,9 @@ export type MonthFigures = {
   // "2026-03"
   month: string
   spending_cents: number
-  income_cents: number
-  // The share of Income left after Spending; null in a Month with no Income.
+  pay_cents: number
+  other_income_cents: number
+  // The share of Pay left after Spending; null in a Month with no Pay.
   savings_rate: number | null
   // A null category_id holds Expenses still in the Review Inbox.
   by_category: { category_id: number | null; spending_cents: number }[]

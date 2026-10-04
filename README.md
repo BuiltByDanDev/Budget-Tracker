@@ -6,11 +6,13 @@ A personal app for seeing where your money goes each month. You export CSV files
 
 - **Import** CSVs from any bank. The first time you import for an account you answer a few questions about how the file is laid out; the answers are saved for next time. Re-importing an overlapping export skips the rows you already have.
 - **Review** new expenses: give each a category (Groceries, Housing, ...) and an importance (Essential, Have to Have, Nice to Have, Shouldn't Have). Tick "Always do this when the description contains ..." to save a rule, and matching transactions are classified for you from then on. A rule can also depend on the amount, either exact or within a range, so one gas station can be Transportation for a $60 fill-up and Dining for a $5 snack.
-- **Dashboard** for one month: spending against your spending limit, income, savings rate, and spending by category (against each category's target) and by importance.
+- **Dashboard** for one month: spending against your spending limit, pay and other income, savings rate (the share of pay left after spending), and spending by category (against each category's target) and by importance.
 - **Trends** across months: spending, savings rate, importance and a category-by-month table.
 - **Rules**: every rule, the transactions it applies to, and a form to change or delete it. Transactions you have not classified by hand follow the rules, so changing or deleting a rule updates them, and a transaction no rule matches any more goes back to Review. When two rules match, one with an amount wins, then the one with the longest text.
 - **Transactions**: every transaction, with filters (including money in or money out) and totals. Click a row to change it.
 - **Settings**: your monthly spending limit, and your categories and their monthly targets.
+
+Money in is counted as other income until you mark it as pay, by hand or with a rule on your employer's description, so an e-transfer from a friend does not pass for earnings.
 
 Money moved between your own accounts (a credit card payment, a transfer to savings) is marked as a transfer and left out of spending and income.
 
@@ -56,7 +58,7 @@ docker compose --env-file .env.demo down -v       # stop it and delete its datab
 About six months ending today, for a chequing account and a credit card. It is built to exercise the awkward cases:
 
 - a gas station whose fill-ups and snacks share one description, left in Review
-- pay on the 1st and 16th, moved to the Friday before when that is a weekend, so some months get three pay deposits and some get one
+- pay on the 1st and 16th, marked as pay by a rule and moved to the Friday before when that is a weekend, so some months get three pay deposits and some get one
 - e-transfers coming in that are not pay, and a refund
 - a credit card payment that shows up on both accounts
 - a monthly US charge that arrives as an amount in another currency

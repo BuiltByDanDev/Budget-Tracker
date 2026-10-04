@@ -33,7 +33,8 @@ class MonthOut(BaseModel):
     # "2026-03"
     month: str
     spending_cents: int
-    income_cents: int
+    pay_cents: int
+    other_income_cents: int
     savings_rate: float | None
     by_category: list[CategorySpending]
     by_importance: list[ImportanceSpending]
@@ -43,7 +44,8 @@ class MonthOut(BaseModel):
         return cls(
             month=figures.month.strftime("%Y-%m"),
             spending_cents=figures.spending_cents,
-            income_cents=figures.income_cents,
+            pay_cents=figures.pay_cents,
+            other_income_cents=figures.other_income_cents,
             savings_rate=figures.savings_rate,
             by_category=[
                 CategorySpending(category_id=category_id, spending_cents=cents)

@@ -198,7 +198,7 @@ function TransactionsPage() {
         )}
       </div>
 
-      <dl className="grid grid-cols-3 gap-4 rounded-lg border p-4">
+      <dl className="grid grid-cols-2 gap-4 rounded-lg border p-4 md:grid-cols-4">
         <div>
           <dt className="text-sm text-muted-foreground">Spending</dt>
           <dd className="text-xl font-semibold tabular-nums">
@@ -206,9 +206,15 @@ function TransactionsPage() {
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-muted-foreground">Income</dt>
+          <dt className="text-sm text-muted-foreground">Pay</dt>
           <dd className="text-xl font-semibold tabular-nums">
-            {formatCents(data.income_cents)}
+            {formatCents(data.pay_cents)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-sm text-muted-foreground">Other income</dt>
+          <dd className="text-xl font-semibold tabular-nums">
+            {formatCents(data.other_income_cents)}
           </dd>
         </div>
         <div>

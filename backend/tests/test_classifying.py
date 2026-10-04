@@ -62,7 +62,7 @@ def test_review_inbox_holds_expenses_without_a_category(client, account):
 
     inbox = review_inbox(client)
 
-    # Four money-out rows; the refund arrives as Income until it is classified.
+    # Four money-out rows; the refund arrives as Other Income until it is classified.
     assert inbox["total"] == 4
 
 
@@ -433,12 +433,12 @@ def test_filters_narrow_the_list(client, session, user, account):
     april = client.get(
         "/api/transactions", params={"date_from": "2026-04-01", "date_to": "2026-04-30"}
     ).json()
-    income = client.get("/api/transactions", params={"kind": "income"}).json()
+    income = client.get("/api/transactions", params={"kind": "other_income"}).json()
 
     assert april["total"] == 2
     assert april["spending_cents"] == 3036
     assert income["total"] == 1
-    assert income["income_cents"] == 2500
+    assert income["other_income_cents"] == 2500
 
 
 def test_filtering_by_money_in_or_money_out(client, account):
@@ -448,9 +448,10 @@ def test_filtering_by_money_in_or_money_out(client, account):
     money_out = client.get("/api/transactions", params={"money": "out"}).json()
     sideways = client.get("/api/transactions", params={"money": "sideways"})
 
-    # Only the 25.00 refund, which arrives as Income.
+    # Only the 25.00 refund, which arrives as Other Income.
     assert money_in["total"] == 1
-    assert money_in["income_cents"] == 2500
+    assert money_in["other_income_cents"] == 2500
+    assert money_in["pay_cents"] == 0
     assert money_in["spending_cents"] == 0
     assert money_out["total"] == 4
     # 16.99 + 42.10 + 9.99 + 300.00

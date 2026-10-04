@@ -29,15 +29,23 @@ One movement of money on an Account, taken from one row of a CSV.
 _Avoid_: Entry, line, record
 
 **Kind**:
-What a Transaction is: an Expense, Income or a Transfer.
+What a Transaction is: an Expense, Pay, Other Income or a Transfer.
 _Avoid_: Type, direction
 
 **Expense**:
 A Transaction that counts towards Spending. Usually money out.
 _Avoid_: Purchase, debit, charge
 
+**Pay**:
+Money in that the User earned from work. The Savings Rate is measured against it.
+_Avoid_: Salary, wages, employment income, paycheque
+
+**Other Income**:
+Money in that is neither Pay, a Refund nor a Transfer, such as an e-transfer from someone else, interest or a gift. Money in is Other Income until a Rule or the User says otherwise.
+_Avoid_: Misc income, deposits
+
 **Income**:
-Money in that was earned or received, such as pay or interest.
+Pay and Other Income together. Not a Kind.
 _Avoid_: Credit, deposit
 
 **Transfer**:
@@ -111,4 +119,4 @@ The most the User intends to spend in one Category in a Month.
 _Avoid_: Budget, envelope, allowance
 
 **Savings Rate**:
-The share of a Month's Income left after Spending.
+The share of a Month's Pay left after Spending. Other Income does not count towards it.

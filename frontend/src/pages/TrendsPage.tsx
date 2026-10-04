@@ -111,7 +111,7 @@ function TrendsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Savings rate per month</CardTitle>
-            <CardDescription>The share of income left after spending.</CardDescription>
+            <CardDescription>The share of pay left after spending.</CardDescription>
           </CardHeader>
           <CardContent>
             <MonthlyChart
@@ -171,7 +171,8 @@ function TrendsPage() {
                 <TableRow>
                   <TableHead>Month</TableHead>
                   <TableHead className="text-right">Spending</TableHead>
-                  <TableHead className="text-right">Income</TableHead>
+                  <TableHead className="text-right">Pay</TableHead>
+                  <TableHead className="text-right">Other income</TableHead>
                   <TableHead className="text-right">Savings rate</TableHead>
                   {limit != null && <TableHead className="text-right">Against limit</TableHead>}
                 </TableRow>
@@ -184,7 +185,10 @@ function TrendsPage() {
                       {formatCents(m.spending_cents)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatCents(m.income_cents)}
+                      {formatCents(m.pay_cents)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatCents(m.other_income_cents)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {m.savings_rate === null ? '–' : formatPercent(m.savings_rate)}

@@ -56,7 +56,8 @@ class TransactionPage(BaseModel):
     total: int
     # Totals over every Transaction matching the filters, not just this page.
     spending_cents: int
-    income_cents: int
+    pay_cents: int
+    other_income_cents: int
 
 
 class Classification(BaseModel):
@@ -137,7 +138,7 @@ def list_transactions(
             | Transaction.merchant_id.in_(merchant_matches)
         )
 
-    total, spending, income = session.execute(
+    total, spending, pay, other_income = session.execute(
         select(
             func.count(),
             # A Refund is an Expense with money in, so it lowers Spending.
@@ -153,7 +154,16 @@ def list_transactions(
             func.coalesce(
                 func.sum(
                     case(
-                        (Transaction.kind == Kind.INCOME, Transaction.amount_cents),
+                        (Transaction.kind == Kind.PAY, Transaction.amount_cents),
+                        else_=0,
+                    )
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Transaction.kind == Kind.OTHER_INCOME, Transaction.amount_cents),
                         else_=0,
                     )
                 ),
@@ -178,7 +188,8 @@ def list_transactions(
         items=[TransactionOut.from_model(t) for t in transactions],
         total=total,
         spending_cents=spending,
-        income_cents=income,
+        pay_cents=pay,
+        other_income_cents=other_income,
     )
 
 

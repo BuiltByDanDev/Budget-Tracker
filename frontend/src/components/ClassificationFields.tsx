@@ -119,6 +119,17 @@ export function ClassificationFields({ idSuffix, value, onChange }: Props) {
         </div>
       </div>
 
+      {kind === 'pay' && (
+        <p className="text-sm text-muted-foreground">
+          Pay is what you earn from work. The savings rate is measured against it.
+        </p>
+      )}
+      {kind === 'other_income' && (
+        <p className="text-sm text-muted-foreground">
+          Other income is money in that is not pay, such as an e-transfer, interest or
+          a gift. It is shown apart from pay and does not count in the savings rate.
+        </p>
+      )}
       {kind === 'transfer' && (
         <p className="text-sm text-muted-foreground">
           A transfer is money moved between your own accounts, such as a credit card

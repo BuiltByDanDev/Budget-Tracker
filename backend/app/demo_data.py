@@ -59,6 +59,7 @@ RULES = [
     ("SPOTIFY", Kind.EXPENSE, "Subscriptions", Importance.NICE_TO_HAVE, "Spotify"),
     ("UBER EATS", Kind.EXPENSE, "Dining", Importance.SHOULDNT_HAVE, "Uber Eats"),
     ("CORNER CAFE", Kind.EXPENSE, "Dining", Importance.NICE_TO_HAVE, "Corner Cafe"),
+    ("PAYROLL DEPOSIT", Kind.PAY, None, None, None),
     # Both sides of the monthly card payment.
     ("VISA PAYMENT", Kind.TRANSFER, None, None, None),
     ("PAYMENT - THANK YOU", Kind.TRANSFER, None, None, None),

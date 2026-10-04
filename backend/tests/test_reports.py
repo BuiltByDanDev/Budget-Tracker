@@ -68,6 +68,7 @@ def classified(client, session, user, account):
         rule_match_text="SHOE STORE",
     )
     classify(("2026-02-14", "TFR TO SAVINGS"), kind="transfer")
+    classify(("2026-02-10", "PAYROLL"), kind="pay")
     return {"groceries": groceries, "shopping": shopping}
 
 
@@ -85,7 +86,8 @@ def test_month_totals_leave_out_transfers_and_net_refunds(client, classified):
 
     # 60 groceries + 120 shoes - 40 refund + 15 mystery; the 500 transfer is excluded.
     assert february["spending_cents"] == 15500
-    assert february["income_cents"] == 200000
+    assert february["pay_cents"] == 200000
+    assert february["other_income_cents"] == 0
     assert february["savings_rate"] == pytest.approx(0.9225)
 
 
@@ -160,3 +162,40 @@ def test_category_target_can_be_set_and_removed(client, classified):
 def test_category_names_are_unique(client, classified):
     assert client.post("/api/categories", json={"name": "groceries"}).status_code == 409
     assert client.post("/api/categories", json={"name": "Pets"}).status_code == 201
+
+
+def test_other_income_is_counted_apart_from_pay_and_not_in_the_savings_rate(
+    client, session, account
+):
+    statement = b"""Date,Description,Amount
+2026-06-01,PAYROLL,1000.00
+2026-06-05,E-TRANSFER FROM SAM,400.00
+2026-06-09,GROCERY MART,-250.00
+"""
+    client.put(f"/api/accounts/{account.id}/csv-mapping", json=MAPPING)
+    client.post(
+        f"/api/accounts/{account.id}/imports",
+        files={"file": ("export.csv", statement, "text/csv")},
+    )
+    payroll = session.scalar(
+        select(Transaction).where(
+            Transaction.account_id == account.id, Transaction.description == "PAYROLL"
+        )
+    )
+
+    before = report(client, "2026-06", "2026-06")["months"][0]
+    # A Rule, so later pay is marked without being asked.
+    client.put(
+        f"/api/transactions/{payroll.id}/classification",
+        json={"kind": "pay", "rule_match_text": "PAYROLL"},
+    )
+    june = report(client, "2026-06", "2026-06")["months"][0]
+
+    # Money in starts as Other Income, and there is no Savings Rate without Pay.
+    assert before["pay_cents"] == 0
+    assert before["other_income_cents"] == 140000
+    assert before["savings_rate"] is None
+    assert june["pay_cents"] == 100000
+    assert june["other_income_cents"] == 40000
+    # 750 of the 1,000 Pay is left; the 400 e-transfer does not raise it.
+    assert june["savings_rate"] == pytest.approx(0.75)

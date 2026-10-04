@@ -58,7 +58,7 @@ def test_import_stores_rows_and_keeps_identical_rows_in_one_file(
     assert stored_count(session, account) == 4
 
 
-def test_money_out_is_an_expense_and_money_in_is_income(client, session, account):
+def test_money_out_is_an_expense_and_money_in_is_other_income(client, session, account):
     client.put(f"/api/accounts/{account.id}/csv-mapping", json=MAPPING)
     upload(client, account, JAN_TO_FEB)
 
@@ -71,7 +71,7 @@ def test_money_out_is_an_expense_and_money_in_is_income(client, session, account
     )
 
     assert kinds["RENT"] == Kind.EXPENSE
-    assert kinds["PAYROLL"] == Kind.INCOME
+    assert kinds["PAYROLL"] == Kind.OTHER_INCOME
 
 
 def test_reimporting_the_same_file_adds_nothing(client, session, account):

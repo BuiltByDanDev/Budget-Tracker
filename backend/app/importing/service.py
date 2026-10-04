@@ -61,7 +61,7 @@ def import_csv(
     same date, amount (as it was imported) and Description. Two identical rows in one file are both
     kept: if the file has three of a row and the Account has one, two are added.
 
-    Money out starts as an Expense and money in as Income; Rules then classify
+    Money out starts as an Expense and money in as Other Income; Rules then classify
     whatever they match.
     """
     mapping = CsvMapping.model_validate(account.csv_mapping)
