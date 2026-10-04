@@ -112,7 +112,7 @@ export function TransactionTable({ transactions, openFirst, onSaved }: Props) {
                 <TableCell
                   className={cn(
                     'text-right tabular-nums',
-                    transaction.amount_cents > 0 && 'text-emerald-600',
+                    transaction.amount_cents > 0 && 'text-emerald-600 dark:text-emerald-400',
                   )}
                 >
                   {transaction.amount_unconverted && (

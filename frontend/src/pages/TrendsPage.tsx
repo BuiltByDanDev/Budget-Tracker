@@ -152,7 +152,7 @@ function TrendsPage() {
           <CardHeader>
             <CardTitle>Spending by category</CardTitle>
             <CardDescription>
-              Darker means more. A category's monthly target is shown beside its name, and a
+              The more a cell stands out, the more was spent. A category's monthly target is shown beside its name, and a
               warning sign marks months over it.
             </CardDescription>
           </CardHeader>

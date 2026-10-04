@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { NavLink, Navigate, Route, Routes } from 'react-router'
 import { api } from '@/api/client'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import DashboardPage from '@/pages/DashboardPage'
@@ -56,6 +57,8 @@ function App() {
               </NavLink>
             ))}
           </nav>
+          <span className="grow" />
+          <ThemeToggle />
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">

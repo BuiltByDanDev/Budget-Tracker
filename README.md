@@ -11,6 +11,7 @@ A personal app for seeing where your money goes each month. You export CSV files
 - **Rules**: every rule, the transactions it applies to, and a form to change or delete it. Transactions you have not classified by hand follow the rules, so changing or deleting a rule updates them, and a transaction no rule matches any more goes back to Review. When two rules match, one with an amount wins, then the one with the longest text.
 - **Transactions**: every transaction, with filters (including money in or money out) and totals. Click a row to change it.
 - **Settings**: your monthly spending limit, your pay days, and your categories and their monthly targets.
+- **Dark theme**: the sun/moon button at the right of the header switches between light and dark, and your browser remembers the choice.
 
 Money in is counted as other income until you mark it as pay, by hand or with a rule on your employer's description, so an e-transfer from a friend does not pass for earnings.
 

@@ -130,6 +130,9 @@
 }
 /* Chart colours. One hue for every series; red is reserved for "over". */
 :root {
+  /* Tells the browser which theme its own controls (date pickers, dropdowns,
+     scrollbars) should be drawn in. */
+  color-scheme: light;
   --viz-series: #2a78d6;
   --viz-track: #cde2fb;
   --viz-grid: #e1e0d9;
@@ -142,9 +145,16 @@
   --viz-heat-3: #6da7ec;
   --viz-heat-4: #2a78d6;
   --viz-heat-5: #184f95;
+  /* The text colour that is readable on each heat step. */
+  --viz-heat-text-1: #0b0b0b;
+  --viz-heat-text-2: #0b0b0b;
+  --viz-heat-text-3: #0b0b0b;
+  --viz-heat-text-4: #ffffff;
+  --viz-heat-text-5: #ffffff;
 }
 
 .dark {
+  color-scheme: dark;
   --viz-series: #3987e5;
   --viz-track: #104281;
   --viz-grid: #2c2c2a;
@@ -155,4 +165,10 @@
   --viz-heat-3: #256abf;
   --viz-heat-4: #3987e5;
   --viz-heat-5: #86b6ef;
+  /* In the dark theme the steps run from dark to light, so the text flips. */
+  --viz-heat-text-1: #ffffff;
+  --viz-heat-text-2: #ffffff;
+  --viz-heat-text-3: #ffffff;
+  --viz-heat-text-4: #0b0b0b;
+  --viz-heat-text-5: #0b0b0b;
 }

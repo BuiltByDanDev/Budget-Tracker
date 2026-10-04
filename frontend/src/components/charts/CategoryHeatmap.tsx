@@ -4,12 +4,10 @@ import { formatDollars } from '@/lib/format'
 import { formatMonthShort } from '@/lib/months'
 
 const STEPS = 5
-// The two darkest steps need light text.
-const FIRST_DARK_STEP = 4
 
 type Props = { months: MonthFigures[]; categories: Category[] }
 
-/** Spending per Category per Month: darker means more. Every value is written in its cell. */
+/** Spending per Category per Month: a stronger colour means more. Every value is written in its cell. */
 export function CategoryHeatmap({ months, categories }: Props) {
   const spent = (month: MonthFigures, categoryId: number | null) =>
     month.by_category.find((entry) => entry.category_id === categoryId)?.spending_cents ?? 0
@@ -74,7 +72,7 @@ export function CategoryHeatmap({ months, categories }: Props) {
                         ? undefined
                         : {
                             background: `var(--viz-heat-${step})`,
-                            color: step >= FIRST_DARK_STEP ? '#ffffff' : '#0b0b0b',
+                            color: `var(--viz-heat-text-${step})`,
                           }
                     }
                   >

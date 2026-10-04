@@ -28,6 +28,7 @@ Read `CONTEXT.md` before naming anything: it is the glossary, and code, UI text 
 - Income is two Kinds, Pay and Other Income. Money in starts as Other Income; only a Rule or the User makes it Pay. The Savings Rate uses Pay alone.
 - A Month is a calendar month by posting date, with one exception: when the User has Pay Days, a Pay Transaction counts in the Month of its nearest Pay Day (`reporting/monthly.py::pay_month`). `posted_on` is never changed. The exception applies to the monthly figures only; the Transactions list filters and totals by posting date and shows `counts_in_month` as a note.
 - UI components come from shadcn/ui (`frontend/src/components/ui/`, generated; do not hand-edit). Charts use one blue for every series, with red reserved for "over"; colours are the `--viz-*` variables in `frontend/src/index.css`.
+- Light and dark themes: the `dark` class on `<html>` switches the colour variables in `index.css`, set by `ThemeToggle.tsx` and, before first paint, by the script in `index.html`. Use the theme variables or a `dark:` variant for any new colour, and check both themes.
 
 ## Deliberately not in v1
 
@@ -47,5 +48,7 @@ Creating a Rule from the Rules page (they are created from a Transaction), merch
 There is no browser tool. Headless Chrome works for screenshots but never exits against the Vite dev server, so wrap it in a time limit:
 
 `perl -e 'alarm 14; exec @ARGV' "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --window-size=1280,1600 --virtual-time-budget=5000 --screenshot=out.png http://localhost:8089/dashboard`
+
+For a dark-theme screenshot, temporarily put `class="dark"` on `<html>` in `frontend/index.html` and remove it afterwards; headless Chrome cannot click the toggle.
 
 Look at pages on the demo stack (port 8089), and add cases to `backend/app/demo_data.py` when a feature needs data it lacks. Never load mock data into the stack on 8088; its database holds Daniel's real transactions.

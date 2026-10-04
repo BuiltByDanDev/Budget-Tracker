@@ -97,7 +97,7 @@ function RuleTransactions({ rule }: { rule: Rule }) {
               <TableCell
                 className={cn(
                   'text-right tabular-nums',
-                  transaction.amount_cents > 0 && 'text-emerald-600',
+                  transaction.amount_cents > 0 && 'text-emerald-600 dark:text-emerald-400',
                 )}
               >
                 {formatCents(transaction.amount_cents)}
