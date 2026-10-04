@@ -37,11 +37,10 @@ Creating a Rule from the Rules page (they are created from a Transaction), merch
 ## Open items
 
 - Never clicked through in a browser: the Import upload flow and the two buttons that settle an Unconverted Amount. Their API endpoints are tested.
-- Daniel's real Transactions (port 8088) are not yet linked to their Rules: `rule_id` is empty until `reapply_rules` first runs there, so the Rules page shows 0 Transactions per Rule. A dry run on 2026-10-04 showed 127 links and no change of classification. Ask before running it.
 - `docker-compose.prod.yml` builds but has not been run.
 - `npm audit` reports 7 high-severity issues via the `shadcn` package (needed for its stylesheet); not investigated.
 - Money in defaults to Other Income, so refunds and incoming transfers inflate Other Income (not Pay or the Savings Rate) until a Rule or the User reclassifies them. They do not appear in the Review Inbox.
-- Daniel's real data has no Pay yet: the migration made all existing Income Other Income, so Pay is $0 and the Savings Rate blank on 8088 until he saves a Pay Rule for his payroll Description. He has not set Pay Days there either (his are 1 and 16).
+- Daniel's real database (8088) was emptied on 2026-10-04 for a fresh import; he has still to recreate his Account, CSV Mapping, Rules (including a Pay Rule) and Pay Days (1 and 16). The dump from before is in `backups/` (ignored by git; restore with `psql` into an empty database).
 
 ## Checking UI changes
 
