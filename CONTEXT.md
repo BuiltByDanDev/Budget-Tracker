@@ -29,19 +29,23 @@ One movement of money on an Account, taken from one row of a CSV.
 _Avoid_: Entry, line, record
 
 **Kind**:
-What a Transaction is: an Expense, Pay, Other Income or a Transfer.
+What a Transaction is: an Expense, Money Back, Pay, Other Income or a Transfer.
 _Avoid_: Type, direction
 
 **Expense**:
-A Transaction that counts towards Spending. Usually money out.
+A Transaction that counts towards Spending. Usually money out. Every Transaction is an Expense with no Category until a Rule or the User says otherwise.
 _Avoid_: Purchase, debit, charge
+
+**Money Back**:
+Money in from someone repaying part of what the User paid for, such as a partner's half of the rent. It reduces Spending but belongs to no Category.
+_Avoid_: Reimbursement, repayment, split, shared cost
 
 **Pay**:
 Money in that the User earned from work. The Savings Rate is measured against it.
 _Avoid_: Salary, wages, employment income, paycheque
 
 **Other Income**:
-Money in that is neither Pay, a Refund nor a Transfer, such as an e-transfer from someone else, interest or a gift. Money in is Other Income until a Rule or the User says otherwise.
+Money in that is neither Pay, Money Back, a Refund nor a Transfer, such as a tax refund, interest or a gift. It does not reduce Spending. Only a Rule or the User makes money in Other Income.
 _Avoid_: Misc income, deposits
 
 **Income**:
@@ -97,7 +101,7 @@ A standing instruction that Transactions whose Description contains given text g
 _Avoid_: Filter, matcher, auto-categorisation
 
 **Review Inbox**:
-The Expenses that have no Category yet.
+The Expenses that have no Category yet. Money in that nothing has classified is among them.
 _Avoid_: Uncategorised list, queue, pending
 
 ### Measuring
@@ -111,7 +115,7 @@ A day of the month on which the User is due to be paid, such as the 1st and the 
 _Avoid_: Payday date, pay schedule, pay period
 
 **Spending**:
-The total of Expenses over some set of Transactions, with Refunds subtracted.
+The total of Expenses over some set of Transactions, with Refunds and Money Back subtracted.
 _Avoid_: Money out, outgoings, costs
 
 **Spending Limit**:

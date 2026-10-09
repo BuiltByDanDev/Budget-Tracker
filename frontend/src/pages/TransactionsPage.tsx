@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { api, type Importance, type Kind, type TransactionFilters } from '@/api/client'
 import { TransactionTable } from '@/components/TransactionTable'
 import { Button } from '@/components/ui/button'
@@ -12,11 +12,19 @@ import {
 } from '@/components/ui/native-select'
 import { formatCents } from '@/lib/format'
 import { IMPORTANCE_LABELS, IMPORTANCES, KIND_LABELS, KINDS } from '@/lib/labels'
+import {
+  filtersFromParams,
+  paramsFromFilters,
+  type PageFilters,
+} from '@/lib/transactionFilters'
 
 const PAGE_SIZE = 50
 
 function TransactionsPage() {
-  const [filters, setFilters] = useState<TransactionFilters>({})
+  // The filters live in the address (?category_id=3&date_from=...), so the
+  // Dashboard can link to a filtered list and the back button returns to it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = filtersFromParams(searchParams)
   const [page, setPage] = useState(0)
 
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: api.listAccounts })
@@ -28,10 +36,12 @@ function TransactionsPage() {
     placeholderData: keepPreviousData,
   })
 
-  const setFilter = (changes: TransactionFilters) => {
-    setFilters({ ...filters, ...changes })
+  const setFilters = (next: PageFilters) => {
+    // replace: changing a filter should not add a step for the back button.
+    setSearchParams(paramsFromFilters(next), { replace: true })
     setPage(0)
   }
+  const setFilter = (changes: PageFilters) => setFilters({ ...filters, ...changes })
   const filtered = Object.values(filters).some((value) => value !== undefined && value !== '')
 
   if (isPending) return <p className="text-sm text-muted-foreground">Loading…</p>
@@ -186,13 +196,7 @@ function TransactionsPage() {
           </NativeSelect>
         </div>
         {filtered && (
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setFilters({})
-              setPage(0)
-            }}
-          >
+          <Button variant="ghost" onClick={() => setFilters({})}>
             Clear
           </Button>
         )}

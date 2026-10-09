@@ -136,7 +136,8 @@ def list_transactions(
     if money == "out":
         conditions.append(Transaction.amount_cents < 0)
     if needs_review:
-        # The Review Inbox: Expenses with no Category.
+        # The Review Inbox: Expenses with no Category. Money in that nothing
+        # has classified is one of them.
         conditions.append(Transaction.kind == Kind.EXPENSE)
         conditions.append(Transaction.category_id.is_(None))
     if amount_unconverted:
@@ -154,11 +155,15 @@ def list_transactions(
     total, spending, pay, other_income = session.execute(
         select(
             func.count(),
-            # A Refund is an Expense with money in, so it lowers Spending.
+            # A Refund is an Expense with money in, so it lowers Spending. So
+            # does Money Back.
             func.coalesce(
                 func.sum(
                     case(
-                        (Transaction.kind == Kind.EXPENSE, -Transaction.amount_cents),
+                        (
+                            Transaction.kind.in_([Kind.EXPENSE, Kind.MONEY_BACK]),
+                            -Transaction.amount_cents,
+                        ),
                         else_=0,
                     )
                 ),

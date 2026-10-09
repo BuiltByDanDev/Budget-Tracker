@@ -11,6 +11,14 @@ export function addMonths(month: string, count: number): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
 }
 
+/** The first and last day of a Month, as dates: ["2026-02-01", "2026-02-28"]. */
+export function daysOfMonth(month: string): [string, string] {
+  const [year, monthNumber] = month.split('-').map(Number)
+  // Day 0 of the next month is the last day of this one.
+  const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
+  return [`${month}-01`, `${month}-${String(lastDay).padStart(2, '0')}`]
+}
+
 export function monthsBetween(first: string, last: string): number {
   const [firstYear, firstMonth] = first.split('-').map(Number)
   const [lastYear, lastMonth] = last.split('-').map(Number)

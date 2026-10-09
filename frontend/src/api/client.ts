@@ -44,7 +44,7 @@ export type ImportSummary = {
 }
 
 // Income is Pay and Other Income together.
-export type Kind = 'expense' | 'pay' | 'other_income' | 'transfer'
+export type Kind = 'expense' | 'money_back' | 'pay' | 'other_income' | 'transfer'
 
 export type Importance =
   | 'essential'
@@ -158,7 +158,9 @@ export type RuleSaved = { rule: Rule; changed: number }
 export type MonthFigures = {
   // "2026-03"
   month: string
+  // Already has Refunds and Money Back taken off.
   spending_cents: number
+  money_back_cents: number
   pay_cents: number
   other_income_cents: number
   // The share of Pay left after Spending; null in a Month with no Pay.

@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { formatCents, formatDollars, formatPercent } from '@/lib/format'
 import { IMPORTANCE_LABELS, IMPORTANCES } from '@/lib/labels'
-import { addMonths, currentMonth, formatMonth } from '@/lib/months'
+import { addMonths, currentMonth, daysOfMonth, formatMonth } from '@/lib/months'
+import { transactionsLink } from '@/lib/transactionFilters'
 import { cn } from '@/lib/utils'
 
 function DashboardPage() {
@@ -49,6 +50,9 @@ function DashboardPage() {
   const figures = report.data.months[0]
   const limit = report.data.spending_limit_cents
 
+  // Each row links to the Transactions behind it: this Month's, by posting date.
+  const [date_from, date_to] = daysOfMonth(month)
+
   // Categories with spending this Month, plus current ones that have a target.
   const categoryRows = categories.data
     .map((category) => ({
@@ -68,11 +72,15 @@ function DashboardPage() {
         label: category.name,
         valueCents: spent,
         targetCents: category.monthly_target_cents,
+        transactionsTo: transactionsLink({ date_from, date_to, category_id: category.id }),
       }),
     )
 
-  const toReviewCents =
-    figures.by_category.find((entry) => entry.category_id === null)?.spending_cents ?? 0
+  // Undefined when nothing this Month is in the Review Inbox. It can be zero or
+  // less: money in that nothing has classified lowers Spending while it waits.
+  const toReviewCents = figures.by_category.find(
+    (entry) => entry.category_id === null,
+  )?.spending_cents
 
   const importanceRows: BarListRow[] = IMPORTANCES.map((importance) => ({
     key: importance,
@@ -80,6 +88,7 @@ function DashboardPage() {
     valueCents:
       figures.by_importance.find((entry) => entry.importance === importance)
         ?.spending_cents ?? 0,
+    transactionsTo: transactionsLink({ date_from, date_to, importance }),
   }))
 
   return (
@@ -118,6 +127,12 @@ function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-5xl font-semibold">{formatDollars(figures.spending_cents)}</p>
+            {figures.money_back_cents !== 0 && (
+              <p className="text-sm text-muted-foreground">
+                {formatCents(figures.spending_cents + figures.money_back_cents)} spent, less{' '}
+                {formatCents(figures.money_back_cents)} money back
+              </p>
+            )}
             {limit != null ? (
               <LimitMeter spendingCents={figures.spending_cents} limitCents={limit} />
             ) : (
@@ -164,9 +179,11 @@ function DashboardPage() {
         </div>
       </div>
 
-      {toReviewCents !== 0 && (
+      {toReviewCents !== undefined && (
         <p className="text-sm text-muted-foreground">
-          {formatCents(toReviewCents)} of this month's spending has no category yet.{' '}
+          {toReviewCents > 0
+            ? `${formatCents(toReviewCents)} of this month's spending has no category yet.`
+            : 'Money in this month has not been classified, and lowers spending until it is.'}{' '}
           <Link className="underline" to="/review">
             Review
           </Link>

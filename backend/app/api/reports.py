@@ -32,7 +32,9 @@ class ImportanceSpending(BaseModel):
 class MonthOut(BaseModel):
     # "2026-03"
     month: str
+    # Already has Refunds and Money Back taken off.
     spending_cents: int
+    money_back_cents: int
     pay_cents: int
     other_income_cents: int
     savings_rate: float | None
@@ -44,6 +46,7 @@ class MonthOut(BaseModel):
         return cls(
             month=figures.month.strftime("%Y-%m"),
             spending_cents=figures.spending_cents,
+            money_back_cents=figures.money_back_cents,
             pay_cents=figures.pay_cents,
             other_income_cents=figures.other_income_cents,
             savings_rate=figures.savings_rate,

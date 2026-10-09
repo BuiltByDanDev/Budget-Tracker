@@ -48,8 +48,9 @@ CARD_MAPPING = {
     "money_out_is_negative": False,
 }
 
-# (text, Kind, Category, Importance, Merchant). The gas station, Amazon and
-# the US charge have no Rule on purpose, so the Review Inbox has something in it.
+# (text, Kind, Category, Importance, Merchant). The gas station, Amazon (its
+# Refund included) and the US charge have no Rule on purpose, so the Review
+# Inbox has something in it.
 RULES = [
     ("MAPLE PROPERTY MGMT", Kind.EXPENSE, "Housing", Importance.ESSENTIAL, None),
     ("LOBLAWS", Kind.EXPENSE, "Groceries", Importance.ESSENTIAL, "Loblaws"),
@@ -60,6 +61,9 @@ RULES = [
     ("UBER EATS", Kind.EXPENSE, "Dining", Importance.SHOULDNT_HAVE, "Uber Eats"),
     ("CORNER CAFE", Kind.EXPENSE, "Dining", Importance.NICE_TO_HAVE, "Corner Cafe"),
     ("PAYROLL DEPOSIT", Kind.PAY, None, None, None),
+    # A housemate's share of the rent and bills.
+    ("E-TRANSFER FROM JORDAN", Kind.MONEY_BACK, None, None, None),
+    ("SAVINGS INTEREST", Kind.OTHER_INCOME, None, None, None),
     # Both sides of the monthly card payment.
     ("VISA PAYMENT", Kind.TRANSFER, None, None, None),
     ("PAYMENT - THANK YOU", Kind.TRANSFER, None, None, None),
@@ -100,9 +104,10 @@ def mock_rows(today: date) -> tuple[list[tuple], list[tuple]]:
         chequing.append((on(1), "PREAUTHORIZED DEBIT MAPLE PROPERTY MGMT", "-1650.00"))
         chequing.append((on(12), "HYDRO ONE BILL PAYMENT", "-" + dollars(70, 120)))
         chequing.append((on(20), "ROGERS WIRELESS", "-85.00"))
-        # Money in that is not pay.
+        # Money in that is not pay: Money Back, and a little Other Income.
         for day in some_days(rng.randint(1, 2)):
             chequing.append((on(day), "E-TRANSFER FROM JORDAN", dollars(40, 300)))
+        chequing.append((on(28), "SAVINGS INTEREST", dollars(2, 6)))
         # The card payment leaves chequing and arrives on the card.
         payment = dollars(900, 1500)
         chequing.append((on(25), "VISA PAYMENT", "-" + payment))

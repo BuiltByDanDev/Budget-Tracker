@@ -38,11 +38,6 @@ def best_rule(rules: Iterable[Rule], description: str, amount_cents: int) -> Rul
     )
 
 
-def starting_kind(amount_cents: int) -> Kind:
-    """Before anything classifies it, money out is an Expense and money in is Other Income."""
-    return Kind.EXPENSE if amount_cents < 0 else Kind.OTHER_INCOME
-
-
 def _classification(transaction: Transaction) -> tuple:
     return (
         transaction.kind,
@@ -70,8 +65,8 @@ def apply_rules(session: Session, user_id: int, transactions: Iterable[Transacti
     """Puts each Transaction in step with the Rules. Returns how many it changed.
 
     A Transaction takes the classification of its best Rule. One that no Rule
-    matches goes back to how an Import leaves it: an Expense with no Category
-    for money out, Other Income for money in.
+    matches goes back to how an Import leaves it: an Expense with no Category,
+    whether it is money out or money in, so it waits in the Review Inbox.
     """
     rules = session.scalars(select(Rule).where(Rule.user_id == user_id)).all()
     changed = 0
@@ -83,7 +78,7 @@ def apply_rules(session: Session, user_id: int, transactions: Iterable[Transacti
                 transaction, rule.kind, rule.category_id, rule.importance, rule.merchant_id
             )
         else:
-            classify(transaction, starting_kind(transaction.amount_cents), None, None, None)
+            classify(transaction, Kind.EXPENSE, None, None, None)
         transaction.rule_id = rule.id if rule is not None else None
         if _classification(transaction) != before:
             changed += 1

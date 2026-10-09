@@ -62,8 +62,19 @@ def test_review_inbox_holds_expenses_without_a_category(client, account):
 
     inbox = review_inbox(client)
 
-    # Four money-out rows; the refund arrives as Other Income until it is classified.
-    assert inbox["total"] == 4
+    # Four money-out rows and the money in, which also waits to be classified.
+    assert inbox["total"] == 5
+
+
+def test_money_in_leaves_the_inbox_once_it_is_classified(client, session, account):
+    upload(client, account, MARCH)
+    money_in = by_description(session, account)["AMZN Mktp CA*88ZZ01"]
+
+    response = classify(client, money_in, kind="money_back")
+
+    assert response.status_code == 200
+    assert review_inbox(client)["total"] == 4
+    assert by_description(session, account)["AMZN Mktp CA*88ZZ01"].kind == Kind.MONEY_BACK
 
 
 def test_classifying_by_hand_takes_a_transaction_out_of_the_inbox(
@@ -84,7 +95,7 @@ def test_classifying_by_hand_takes_a_transaction_out_of_the_inbox(
     assert response.status_code == 200
     assert response.json()["transaction"]["merchant_name"] == "Netflix"
     assert response.json()["also_classified"] == 0
-    assert review_inbox(client)["total"] == 3
+    assert review_inbox(client)["total"] == 4
 
 
 def test_an_expense_needs_a_category_and_an_importance(client, session, account):
@@ -405,9 +416,9 @@ def test_a_transfer_rule_keeps_card_payments_out_of_spending(
     totals = client.get("/api/transactions").json()
     assert payment.kind == Kind.TRANSFER
     assert payment.category_id is None
-    # 16.99 + 42.10 + 9.99, without the 300.00 payment.
-    assert totals["spending_cents"] == 6908
-    assert review_inbox(client)["total"] == 3
+    # 16.99 + 42.10 + 9.99 less the 25.00 of money in, without the 300.00 payment.
+    assert totals["spending_cents"] == 4408
+    assert review_inbox(client)["total"] == 4
 
 
 def test_rule_text_must_appear_in_the_description(client, session, user, account):
@@ -433,6 +444,8 @@ def test_filters_narrow_the_list(client, session, user, account):
     april = client.get(
         "/api/transactions", params={"date_from": "2026-04-01", "date_to": "2026-04-30"}
     ).json()
+    money_in = by_description(session, account)["AMZN Mktp CA*88ZZ01"]
+    classify(client, money_in, kind="other_income")
     income = client.get("/api/transactions", params={"kind": "other_income"}).json()
 
     assert april["total"] == 2
@@ -448,11 +461,11 @@ def test_filtering_by_money_in_or_money_out(client, account):
     money_out = client.get("/api/transactions", params={"money": "out"}).json()
     sideways = client.get("/api/transactions", params={"money": "sideways"})
 
-    # Only the 25.00 refund, which arrives as Other Income.
+    # Only the 25.00 of money in, which lowers Spending until it is classified.
     assert money_in["total"] == 1
-    assert money_in["other_income_cents"] == 2500
+    assert money_in["other_income_cents"] == 0
     assert money_in["pay_cents"] == 0
-    assert money_in["spending_cents"] == 0
+    assert money_in["spending_cents"] == -2500
     assert money_out["total"] == 4
     # 16.99 + 42.10 + 9.99 + 300.00
     assert money_out["spending_cents"] == 36908

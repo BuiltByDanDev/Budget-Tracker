@@ -2,6 +2,7 @@ import type { Importance, Kind } from '@/api/client'
 
 export const KIND_LABELS: Record<Kind, string> = {
   expense: 'Expense',
+  money_back: 'Money Back',
   pay: 'Pay',
   other_income: 'Other Income',
   transfer: 'Transfer',

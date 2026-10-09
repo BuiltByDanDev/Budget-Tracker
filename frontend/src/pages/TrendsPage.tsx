@@ -171,6 +171,7 @@ function TrendsPage() {
                 <TableRow>
                   <TableHead>Month</TableHead>
                   <TableHead className="text-right">Spending</TableHead>
+                  <TableHead className="text-right">Money back</TableHead>
                   <TableHead className="text-right">Pay</TableHead>
                   <TableHead className="text-right">Other income</TableHead>
                   <TableHead className="text-right">Savings rate</TableHead>
@@ -183,6 +184,9 @@ function TrendsPage() {
                     <TableCell>{formatMonth(m.month)}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatCents(m.spending_cents)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatCents(m.money_back_cents)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatCents(m.pay_cents)}

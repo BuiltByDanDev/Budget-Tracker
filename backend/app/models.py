@@ -16,6 +16,9 @@ class Kind(enum.StrEnum):
     # Income is Pay and Other Income together.
     PAY = "pay"
     OTHER_INCOME = "other_income"
+    # Money in that repays part of what the User paid for. It lowers Spending
+    # but has no Category.
+    MONEY_BACK = "money_back"
     TRANSFER = "transfer"
 
 

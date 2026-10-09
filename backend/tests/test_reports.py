@@ -164,41 +164,90 @@ def test_category_names_are_unique(client, classified):
     assert client.post("/api/categories", json={"name": "Pets"}).status_code == 201
 
 
-def test_other_income_is_counted_apart_from_pay_and_not_in_the_savings_rate(
-    client, session, account
-):
-    statement = b"""Date,Description,Amount
+JUNE = b"""Date,Description,Amount
 2026-06-01,PAYROLL,1000.00
 2026-06-05,E-TRANSFER FROM SAM,400.00
 2026-06-09,GROCERY MART,-250.00
+2026-06-12,RENT,-600.00
 """
+
+
+def import_june(client, session, account):
+    """Imports JUNE and returns a function that classifies a row by its Description."""
     client.put(f"/api/accounts/{account.id}/csv-mapping", json=MAPPING)
     client.post(
         f"/api/accounts/{account.id}/imports",
-        files={"file": ("export.csv", statement, "text/csv")},
+        files={"file": ("export.csv", JUNE, "text/csv")},
     )
-    payroll = session.scalar(
-        select(Transaction).where(
-            Transaction.account_id == account.id, Transaction.description == "PAYROLL"
+
+    def classify(description, **body):
+        transaction = session.scalar(
+            select(Transaction).where(
+                Transaction.account_id == account.id,
+                Transaction.description == description,
+            )
         )
-    )
+        response = client.put(
+            f"/api/transactions/{transaction.id}/classification", json=body
+        )
+        assert response.status_code == 200
+
+    return classify
+
+
+def test_money_in_lowers_spending_until_it_is_classified(client, session, account):
+    classify = import_june(client, session, account)
 
     before = report(client, "2026-06", "2026-06")["months"][0]
     # A Rule, so later pay is marked without being asked.
-    client.put(
-        f"/api/transactions/{payroll.id}/classification",
-        json={"kind": "pay", "rule_match_text": "PAYROLL"},
-    )
+    classify("PAYROLL", kind="pay", rule_match_text="PAYROLL")
     june = report(client, "2026-06", "2026-06")["months"][0]
 
-    # Money in starts as Other Income, and there is no Savings Rate without Pay.
+    # 250 + 600 out, less the 1,000 and the 400 in; no Savings Rate without Pay.
+    assert before["spending_cents"] == -55000
     assert before["pay_cents"] == 0
-    assert before["other_income_cents"] == 140000
     assert before["savings_rate"] is None
     assert june["pay_cents"] == 100000
+    assert june["spending_cents"] == 45000
+    # All of it still waits in the Review Inbox, under no Category.
+    assert june["by_category"] == [{"category_id": None, "spending_cents": 45000}]
+
+
+def test_money_back_lowers_spending_but_no_category(client, session, user, account):
+    classify = import_june(client, session, account)
+    housing = category_id(session, user, "Housing")
+    classify("PAYROLL", kind="pay")
+    classify("RENT", kind="expense", category_id=housing, importance="essential")
+    classify("E-TRANSFER FROM SAM", kind="money_back")
+
+    june = report(client, "2026-06", "2026-06")["months"][0]
+    by_category = {c["category_id"]: c["spending_cents"] for c in june["by_category"]}
+
+    # 250 + 600 out, less Sam's 400 towards the rent.
+    assert june["spending_cents"] == 45000
+    assert june["money_back_cents"] == 40000
+    assert june["other_income_cents"] == 0
+    # Housing keeps its full cost; the Categories add up to Spending before Money Back.
+    assert by_category == {housing: 60000, None: 25000}
+    assert june["savings_rate"] == pytest.approx(0.55)
+
+
+def test_other_income_is_counted_apart_from_pay_and_not_in_the_savings_rate(
+    client, session, account
+):
+    classify = import_june(client, session, account)
+    classify("PAYROLL", kind="pay")
+    classify("E-TRANSFER FROM SAM", kind="other_income")
+
+    june = report(client, "2026-06", "2026-06")["months"][0]
+
+    assert june["pay_cents"] == 100000
     assert june["other_income_cents"] == 40000
-    # 750 of the 1,000 Pay is left; the 400 e-transfer does not raise it.
-    assert june["savings_rate"] == pytest.approx(0.75)
+    assert june["money_back_cents"] == 0
+    # 150 of the 1,000 Pay is left; the 400 e-transfer neither raises that
+    # nor lowers Spending.
+    assert june["spending_cents"] == 85000
+    assert june["savings_rate"] == pytest.approx(0.15)
 
 
 def test_pay_counts_in_the_month_of_its_nearest_pay_day(client, session, account):
@@ -235,7 +284,7 @@ def test_pay_counts_in_the_month_of_its_nearest_pay_day(client, session, account
     assert july["pay_cents"] == 200000
     assert august["pay_cents"] == 200000
     # Only Pay moves: the e-transfer of the same day stays in July.
-    assert july["other_income_cents"] == 5000
+    assert july["spending_cents"] == -5000
     moved = {t["posted_on"]: t["counts_in_month"] for t in listed}
     assert moved == {
         "2026-07-02": None,

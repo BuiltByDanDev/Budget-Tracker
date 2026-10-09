@@ -6,14 +6,14 @@ A personal app for seeing where your money goes each month. You export CSV files
 
 - **Import** CSVs from any bank. The first time you import for an account you answer a few questions about how the file is laid out; the answers are saved for next time. Re-importing an overlapping export skips the rows you already have.
 - **Review** new expenses: give each a category (Groceries, Housing, ...) and an importance (Essential, Have to Have, Nice to Have, Shouldn't Have). Tick "Always do this when the description contains ..." to save a rule, and matching transactions are classified for you from then on. A rule can also depend on the amount, either exact or within a range, so one gas station can be Transportation for a $60 fill-up and Dining for a $5 snack.
-- **Dashboard** for one month: spending against your spending limit, pay and other income, savings rate (the share of pay left after spending), and spending by category (against each category's target) and by importance.
+- **Dashboard** for one month: spending against your spending limit, pay and other income, savings rate (the share of pay left after spending), and spending by category (against each category's target) and by importance. The filter icon beside a category or an importance opens the transactions behind it for that month.
 - **Trends** across months: spending, savings rate, importance and a category-by-month table.
 - **Rules**: every rule, the transactions it applies to, and a form to change or delete it. Transactions you have not classified by hand follow the rules, so changing or deleting a rule updates them, and a transaction no rule matches any more goes back to Review. When two rules match, one with an amount wins, then the one with the longest text.
 - **Transactions**: every transaction, with filters (including money in or money out) and totals. Click a row to change it.
 - **Settings**: your monthly spending limit, your pay days, and your categories and their monthly targets.
 - **Dark theme**: the sun/moon button at the right of the header switches between light and dark, and your browser remembers the choice.
 
-Money in is counted as other income until you mark it as pay, by hand or with a rule on your employer's description, so an e-transfer from a friend does not pass for earnings.
+Money in waits in the review inbox, lowering spending, until you say what it is, by hand or with a rule: pay (your employer's description), money back (someone repaying their share of a cost), a refund, a transfer, or other income such as a tax refund. Only pay counts in the savings rate, and other income lowers nothing, so a gift does not pass for earnings or for spending less.
 
 If you are paid on fixed days, enter them as pay days in Settings (for example 1, 16). Pay that lands a day or two early or late because of a weekend or holiday then counts in the month it was meant for, so a month does not show three paycheques and the next one only one. The transaction keeps its real date.
 

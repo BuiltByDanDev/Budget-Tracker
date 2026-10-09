@@ -23,9 +23,10 @@ Read `CONTEXT.md` before naming anything: it is the glossary, and code, UI text 
 
 - Amounts are integer cents, negative for money out. `imported_amount_cents` is never edited; duplicate detection uses it.
 - Every table has `user_id`. `app/users.py::get_current_user` returns the one default User and is the only place login needs to plug in.
-- A Rule never changes a Transaction with `set_by_hand`. Every other Transaction is kept in step with the Rules: after a Rule is added, changed or deleted, `reapply_rules` gives each one its best match (recorded in `rule_id`), or resets it to Expense with no Category (money out) or Other Income (money in) when nothing matches. A Rule with an amount beats a text-only one; then the longest matching rule text wins. A Transaction classified by hand while saving a Rule stays `set_by_hand`, so it is not counted under that Rule.
+- A Rule never changes a Transaction with `set_by_hand`. Every other Transaction is kept in step with the Rules: after a Rule is added, changed or deleted, `reapply_rules` gives each one its best match (recorded in `rule_id`), or resets it to Expense with no Category when nothing matches, money in as well as money out. A Rule with an amount beats a text-only one; then the longest matching rule text wins. A Transaction classified by hand while saving a Rule stays `set_by_hand`, so it is not counted under that Rule.
 - Transfers are excluded from Spending and Income everywhere. A Refund is an Expense with a positive amount.
-- Income is two Kinds, Pay and Other Income. Money in starts as Other Income; only a Rule or the User makes it Pay. The Savings Rate uses Pay alone.
+- Money in starts as an Expense with no Category, so it sits in the Review Inbox and lowers Spending until a Rule or the User makes it a Refund (Expense with a Category), Money Back, Pay, Other Income or a Transfer (`docs/adr/0006`). Money Back lowers Spending in no Category, so the Categories add up to Spending before Money Back.
+- Income is two Kinds, Pay and Other Income. The Savings Rate uses Pay alone; Other Income lowers nothing.
 - A Month is a calendar month by posting date, with one exception: when the User has Pay Days, a Pay Transaction counts in the Month of its nearest Pay Day (`reporting/monthly.py::pay_month`). `posted_on` is never changed. The exception applies to the monthly figures only; the Transactions list filters and totals by posting date and shows `counts_in_month` as a note.
 - UI components come from shadcn/ui (`frontend/src/components/ui/`, generated; do not hand-edit). Charts use one blue for every series, with red reserved for "over"; colours are the `--viz-*` variables in `frontend/src/index.css`.
 - Light and dark themes: the `dark` class on `<html>` switches the colour variables in `index.css`, set by `ThemeToggle.tsx` and, before first paint, by the script in `index.html`. Use the theme variables or a `dark:` variant for any new colour, and check both themes.
@@ -39,7 +40,7 @@ Creating a Rule from the Rules page (they are created from a Transaction), merch
 - Never clicked through in a browser: the Import upload flow and the two buttons that settle an Unconverted Amount. Their API endpoints are tested.
 - `docker-compose.prod.yml` builds but has not been run.
 - `npm audit` reports 7 high-severity issues via the `shadcn` package (needed for its stylesheet); not investigated.
-- Money in defaults to Other Income, so refunds and incoming transfers inflate Other Income (not Pay or the Savings Rate) until a Rule or the User reclassifies them. They do not appear in the Review Inbox.
+- Unclassified money in lowers Spending, so an incoming Transfer (a card payment arriving on the card) understates Spending until it is classified. It shows in the Review Inbox, and the Dashboard says so when the Month's unreviewed total is not positive.
 - Daniel's real database (8088) was emptied on 2026-10-04 for a fresh import; he has still to recreate his Account, CSV Mapping, Rules (including a Pay Rule) and Pay Days (1 and 16). The dump from before is in `backups/` (ignored by git; restore with `psql` into an empty database).
 
 ## Checking UI changes

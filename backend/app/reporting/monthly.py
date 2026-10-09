@@ -1,4 +1,4 @@
-"""Spending, Pay, Other Income and Savings Rate per Month."""
+"""Spending, Money Back, Pay, Other Income and Savings Rate per Month."""
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -14,7 +14,10 @@ from app.models import Importance, Kind, Transaction
 class MonthFigures:
     # The first day of the Month.
     month: date
+    # Expenses less Refunds and Money Back.
     spending_cents: int = 0
+    # The part of that reduction that came from Money Back.
+    money_back_cents: int = 0
     pay_cents: int = 0
     other_income_cents: int = 0
     # Keyed by Category id; None holds Expenses still in the Review Inbox.
@@ -25,8 +28,9 @@ class MonthFigures:
     def savings_rate(self) -> float | None:
         """The share of Pay left after Spending. None in a Month with no Pay.
 
-        Other Income is left out, so money in that is not earnings (an
-        e-transfer from a friend) cannot make a Month look better than it was.
+        Other Income is left out, so money in that is neither earnings nor
+        someone repaying a cost (a tax refund, a gift) cannot make a Month look
+        better than it was.
         """
         if self.pay_cents <= 0:
             return None
@@ -76,7 +80,8 @@ def monthly_figures(
 
     A Transaction belongs to the Month of its posting date, except Pay, which
     belongs to the Month of its nearest Pay Day (see pay_month). Transfers count
-    towards nothing. A Refund is an Expense with money in, so it lowers Spending.
+    towards nothing. A Refund is an Expense with money in, so it lowers Spending
+    in its Category. Money Back lowers Spending too, but in no Category.
     """
     figures: dict[date, MonthFigures] = {}
     month = first_month
@@ -107,6 +112,10 @@ def monthly_figures(
         month_figures = figures[started.date()]
         if kind == Kind.OTHER_INCOME:
             month_figures.other_income_cents += amount_cents
+            continue
+        if kind == Kind.MONEY_BACK:
+            month_figures.money_back_cents += amount_cents
+            month_figures.spending_cents -= amount_cents
             continue
         spent = -amount_cents
         month_figures.spending_cents += spent

@@ -119,6 +119,12 @@ export function ClassificationFields({ idSuffix, value, onChange }: Props) {
         </div>
       </div>
 
+      {kind === 'money_back' && (
+        <p className="text-sm text-muted-foreground">
+          Money back is someone repaying part of what you paid for, such as their half
+          of the rent. It lowers spending without belonging to a category.
+        </p>
+      )}
       {kind === 'pay' && (
         <p className="text-sm text-muted-foreground">
           Pay is what you earn from work. The savings rate is measured against it.
@@ -126,8 +132,9 @@ export function ClassificationFields({ idSuffix, value, onChange }: Props) {
       )}
       {kind === 'other_income' && (
         <p className="text-sm text-muted-foreground">
-          Other income is money in that is not pay, such as an e-transfer, interest or
-          a gift. It is shown apart from pay and does not count in the savings rate.
+          Other income is money in that is neither pay nor money back, such as a tax
+          refund, interest or a gift. It is shown apart from pay, and does not lower
+          spending or count in the savings rate.
         </p>
       )}
       {kind === 'transfer' && (

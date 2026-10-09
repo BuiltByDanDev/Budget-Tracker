@@ -1,4 +1,5 @@
-import { TriangleAlert } from 'lucide-react'
+import { ListFilter, TriangleAlert } from 'lucide-react'
+import { Link } from 'react-router'
 import { formatCents, formatDollars } from '@/lib/format'
 
 export type BarListRow = {
@@ -7,6 +8,9 @@ export type BarListRow = {
   valueCents: number
   // Draws a marker at this amount and flags the row when the value passes it.
   targetCents?: number | null
+  // Where the Transactions behind this row are listed. Shows a filter icon
+  // beside the label that goes there.
+  transactionsTo?: string
 }
 
 /** Horizontal bars for comparing amounts, with the value written at the end of each row. */
@@ -21,7 +25,19 @@ export function BarList({ rows }: { rows: BarListRow[] }) {
         return (
           <li key={row.key}>
             <div className="flex items-baseline justify-between gap-4 text-sm">
-              <span>{row.label}</span>
+              <span className="flex items-center gap-1.5">
+                {row.label}
+                {row.transactionsTo && (
+                  <Link
+                    to={row.transactionsTo}
+                    aria-label={`Show ${row.label} transactions`}
+                    title="Show these transactions"
+                    className="self-center rounded-sm text-muted-foreground hover:text-foreground"
+                  >
+                    <ListFilter className="size-3.5" aria-hidden="true" />
+                  </Link>
+                )}
+              </span>
               <span className="tabular-nums">
                 {formatCents(row.valueCents)}
                 {row.targetCents != null && (
